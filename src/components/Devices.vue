@@ -1,7 +1,7 @@
 <script setup>
   import {reactive} from "vue";
-  import {registry as Registry} from "./registry";
-  import {dashboard as Dashboard} from "./dashboard";
+  import {registry as Registry} from "../registry";
+  import {dashboard as Dashboard} from "../dashboard";
 
   const state = reactive({
     dashboard: []

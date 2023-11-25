@@ -1,5 +1,5 @@
 <script setup>
-  import {prettifyMilliseconds} from "../format";
+  import {prettifyMilliseconds} from "../../format";
   import {onMounted, onUnmounted, onUpdated, ref} from "vue";
 
   const props = defineProps({

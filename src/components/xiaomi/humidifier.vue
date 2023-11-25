@@ -5,8 +5,8 @@
   import Item from "@/components/properties/Item.vue";
   import Section from "@/components/properties/Section.vue";
   import LastUpdate from "@/components/properties/LastUpdate.vue";
-  import {registry as Registry} from "@/components/registry";
-  import {bus as Bus} from "../bus";
+  import {registry as Registry} from "@/registry";
+  import {bus as Bus} from "@/bus";
 
   const props = defineProps({
     item: Object,

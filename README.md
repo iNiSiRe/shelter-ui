@@ -47,3 +47,7 @@ items:
 - lumi.sensor_magnet.aq2
 - lumi.sensor_motion.aq2
 - lumi.weather.v1
+
+## Screenshots
+![main](https://raw.githubusercontent.com/iNiSiRe/shelter-ui/master/.doc/main.png)
+![extended](https://raw.githubusercontent.com/iNiSiRe/shelter-ui/master/.doc/extended.png)
