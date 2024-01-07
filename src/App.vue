@@ -6,7 +6,7 @@
   <suspense>
     <Devices></Devices>
     <template #fallback>
-      Loading
+      Loading...
     </template>
   </suspense>
 </template>

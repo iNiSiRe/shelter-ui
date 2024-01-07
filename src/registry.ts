@@ -62,13 +62,22 @@ export class Registry extends EventTarget
 
     async call(deviceId: string, method: string, params: object = {}): Promise<Result>
     {
-        return await fetch(`${this.baseUrl}/api/v1/devices/${deviceId}/${method}`, {method: "post"})
-            .then(response => response.json())
-            .then(response => {
-                console.log(response);
-                const result = response.result;
-                return new Result(result.code, result.data);
-            });
+        return await fetch(
+            `${this.baseUrl}/api/v1/devices/${deviceId}/${method}`,
+            {
+                method: "post",
+                body: JSON.stringify(params),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        )
+        .then(response => response.json())
+        .then(response => {
+            // console.log(response);
+            const result = response.result;
+            return new Result(result.code, result.data);
+        });
     }
 }
 
