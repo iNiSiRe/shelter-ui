@@ -192,7 +192,7 @@
   });
 
   // if (props.device.properties.socketPath) {
-  const special = new WebSocket('ws://127.0.0.1:9090/pointer');
+  const special = new WebSocket('ws://192.168.0.49:9090/pointer');
 
   special.onopen = function () {
     console.log("Special Соединение установлено.");
