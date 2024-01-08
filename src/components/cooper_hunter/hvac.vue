@@ -6,7 +6,6 @@
   import Section from "@/components/properties/Section.vue";
   import LastUpdate from "@/components/properties/LastUpdate.vue";
   import {registry as Registry} from "@/registry";
-  import {bus as Bus} from "@/bus";
   import Radio from "@/components/controls/Radio.vue";
   import CounterInput from "@/components/controls/CounterInput.vue";
 
