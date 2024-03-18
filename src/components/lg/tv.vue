@@ -220,14 +220,16 @@
   });
 
   const disconnect = () => {
-    special.close()
+    if (special) {
+      special.close()
+    }
     connected.value = false
   }
 
   const connect = () => {
-    connecting.value = true
-
     if (!connecting.value) {
+      connecting.value = true
+
       special = new WebSocket('ws://192.168.0.49:9090/pointer')
 
       special.onopen = function () {
