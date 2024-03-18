@@ -26,25 +26,21 @@
   const connecting = ref(false);
   const connected = ref(false);
 
-  let interval = undefined;
-
   const handleVisibilityChange = () => {
     console.log('visibilitychange: ' + document.hidden)
     if (document.hidden) {
       disconnect();
-      clearInterval(interval);
     } else {
       connect();
-      interval = setInterval(connect, 15000);
     }
   };
 
   const handleBeforeUnload = () => {
     disconnect();
-    clearInterval(interval);
   };
 
   onMounted(() => {
+    connect();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -55,6 +51,7 @@
   })
   
   onBeforeUnmount(() => {
+    disconnect();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('beforeunload', handleBeforeUnload);
 
@@ -227,7 +224,7 @@
   }
 
   const connect = () => {
-    if (!connecting.value) {
+    if (!connecting.value && !connected.value) {
       connecting.value = true
 
       special = new WebSocket('ws://192.168.0.49:9090/pointer')
