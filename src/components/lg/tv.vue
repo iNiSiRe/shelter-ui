@@ -18,11 +18,34 @@
   let clientY = undefined;
   let lastDeltaY = 0;
   let lastDeltaX = 0;
+
+  let special = null;
+
+  const canvas = ref(null);
+
+  const connecting = ref(false);
+  const connected = ref(false);
+
   let interval = undefined;
 
-  const canvas = ref(null)
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+
+    } else {
+      connect();
+      interval = setInterval(connect, 15000);
+    }
+  };
+
+  const handleBeforeUnload = () => {
+    disconnect();
+    clearInterval(interval);
+  };
 
   onMounted(() => {
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     canvas.value.addEventListener('touchstart', handleStart);
     canvas.value.addEventListener('touchend', handleEnd);
     canvas.value.addEventListener('touchcancel', handleCancel);
@@ -30,6 +53,9 @@
   })
   
   onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+
     canvas.value.removeEventListener('touchstart', handleStart)
     canvas.value.removeEventListener('touchend', handleEnd)
     canvas.value.removeEventListener('touchcancel', handleCancel)
@@ -191,31 +217,45 @@
     return props.device.properties.listLaunchPoints.find(point => point.id === props.device.properties.foregroundApp)
   });
 
-  // if (props.device.properties.socketPath) {
-  const special = new WebSocket('ws://192.168.0.49:9090/pointer');
+  const disconnect = () => {
+    special.close()
+    connected.value = false
+  }
 
-  special.onopen = function () {
-    console.log("Special Соединение установлено.");
-  };
+  const connect = () => {
+    connecting.value = true
 
-  special.onclose = function (event) {
-    if (event.wasClean) {
-      console.log('Special Соединение закрыто чисто');
-    } else {
-      console.log('Special Обрыв соединения'); // например, "убит" процесс сервера
+    if (!connecting.value) {
+      special = new WebSocket('ws://192.168.0.49:9090/pointer')
+
+      special.onopen = function () {
+        connected.value = true
+        console.log("Special Соединение установлено.");
+      };
+
+      special.onclose = function (event) {
+        connected.value = false
+        if (event.wasClean) {
+          console.log('Special Соединение закрыто чисто');
+        } else {
+          console.log('Special Обрыв соединения'); // например, "убит" процесс сервера
+        }
+        console.log('Special Код: ' + event.code + ' причина: ' + event.reason);
+      };
+
+      special.onmessage = function (event) {
+        console.log("Special Получены данные " + event.data);
+      };
+
+      special.onerror = function (error) {
+        connected.value = false
+        special.close()
+        console.log("Special Ошибка " + error.message);
+      };
     }
-    console.log('Special Код: ' + event.code + ' причина: ' + event.reason);
-  };
 
-  special.onmessage = function (event) {
-    console.log("Special Получены данные " + event.data);
-  };
-
-  special.onerror = function (error) {
-    console.log("Special Ошибка " + error.message);
-  };
-  // }
-
+    connecting.value = false
+  }
 </script>
 
 <template>
