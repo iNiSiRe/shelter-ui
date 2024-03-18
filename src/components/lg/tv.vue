@@ -29,8 +29,10 @@
   let interval = undefined;
 
   const handleVisibilityChange = () => {
+    console.log('visibilitychange: ' + document.hidden)
     if (document.hidden) {
-
+      disconnect();
+      clearInterval(interval);
     } else {
       connect();
       interval = setInterval(connect, 15000);
