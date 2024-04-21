@@ -227,7 +227,7 @@
     if (!connecting.value && !connected.value) {
       connecting.value = true
 
-      special = new WebSocket('ws://192.168.0.49:9090/pointer')
+      special = new WebSocket('ws://192.168.0.197:9090/pointer')
 
       special.onopen = function () {
         connected.value = true
