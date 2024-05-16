@@ -270,8 +270,8 @@
     </template>
 
     <template #status>
-      <div class="flex flex-row place-items-center gap-2">
-        <img style="height: 20px" :src="foregroundAppInfo?.icon" alt="icon">
+      <div v-if="device.properties.enabled" class="flex flex-row place-items-center gap-2">
+        <img v-if="foregroundAppInfo" style="height: 20px" :src="foregroundAppInfo?.icon" alt="icon">
         <span class="flex flex-row place-items-center gap-2">{{ foregroundAppInfo?.title }} | <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="height: 20px;enable-background:new 0 0 512 512" xml:space="preserve"><g><linearGradient id="a" x1="12" x2="12" y1="2" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00bcd4"></stop><stop offset="1" stop-color="#1976d2"></stop></linearGradient><path fill="url(#a)" d="M18.36 19.36a1 1 0 0 1-.705-1.71C19.167 16.148 20 14.142 20 12s-.833-4.148-2.345-5.65a1 1 0 0 1 1.41-1.42C20.958 6.813 22 9.323 22 12s-1.042 5.188-2.935 7.07a.998.998 0 0 1-.705.29zm-2.127-3.12C17.356 15.13 18 13.586 18 12s-.644-3.13-1.767-4.24a1 1 0 0 0-1.406 1.421C15.572 9.918 16 10.946 16 12s-.428 2.082-1.173 2.819a1 1 0 1 0 1.406 1.422zm-3.85 5.684A1 1 0 0 0 13 21V3a1 1 0 0 0-1.707-.707L6.586 7H4c-1.103 0-2 .897-2 2v6c0 1.103.897 2 2 2h2.586l4.707 4.707a1 1 0 0 0 1.09.217zM7 9a1 1 0 0 0 .707-.293L11 5.414v13.172l-3.293-3.293A1 1 0 0 0 7 15H4V9z" opacity="1" data-original="url(#a)"></path></g></svg> {{ device.properties.volume }}</span>
       </div>
     </template>
