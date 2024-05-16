@@ -26,20 +26,37 @@
   const connecting = ref(false);
   const connected = ref(false);
 
+  let interval = null
+
   const handleVisibilityChange = () => {
     console.log('visibilitychange: ' + document.hidden)
     if (document.hidden) {
       disconnect();
+      if (interval) {
+        clearInterval(interval);
+      }
     } else {
+      if (interval) {
+        clearInterval(interval);
+      }
+      interval = setInterval(connect, 15000);
       connect();
     }
   };
 
   const handleBeforeUnload = () => {
+    if (interval) {
+      clearInterval(interval);
+    }
+
     disconnect();
   };
 
   onMounted(() => {
+    if (interval) {
+      clearInterval(interval);
+    }
+    interval = setInterval(connect, 15000);
     connect();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -51,6 +68,10 @@
   })
   
   onBeforeUnmount(() => {
+    if (interval) {
+      clearInterval(interval);
+    }
+
     disconnect();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('beforeunload', handleBeforeUnload);
