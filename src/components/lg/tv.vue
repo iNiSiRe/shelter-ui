@@ -11,273 +11,247 @@
     device: Object
   });
 
-  let ongoingTouches = [];
-  let startX = undefined;
-  let startY = undefined;
-  let clientX = undefined;
-  let clientY = undefined;
-  let lastDeltaY = 0;
-  let lastDeltaX = 0;
+  const POINTER_URL = 'ws://192.168.0.197:9090/pointer';
+  const RECONNECT_INTERVAL = 15000;
 
-  let special = null;
+  // --- touchpad state ---
+  let ongoingTouches = [];
+  let startX = 0;
+  let startY = 0;
+  let clientX = 0;
+  let clientY = 0;
 
   const canvas = ref(null);
 
+  // --- pointer websocket state ---
+  let pointerSocket = null;
+  let reconnectTimer = null;
   const connecting = ref(false);
   const connected = ref(false);
 
-  let interval = null
+  // --- power toggle guard ---
+  // Locks the power switch briefly after a command so a slow `enabled`
+  // state update can't be mistaken for "still off" and toggled back off.
+  const powerPending = ref(false);
 
-  const handleVisibilityChange = () => {
-    console.log('visibilitychange: ' + document.hidden)
-    if (document.hidden) {
-      disconnect();
-      if (interval) {
-        clearInterval(interval);
-      }
-    } else {
-      if (interval) {
-        clearInterval(interval);
-      }
-      interval = setInterval(connect, 15000);
-      connect();
+  const send = (type, payload = {}) => {
+    if (pointerSocket?.readyState !== WebSocket.OPEN) {
+      return;
     }
+
+    const message = Object.entries(payload)
+        .reduce((acc, [key, value]) => acc.concat([`${key}:${value}`]), [`type:${type}`])
+        .join('\n') + '\n\n';
+
+    pointerSocket.send(message);
   };
 
-  const handleBeforeUnload = () => {
-    if (interval) {
-      clearInterval(interval);
-    }
+  const button = (name) => send('button', {name});
+  const move = (dx, dy) => send('move', {dx, dy, drag: 0});
+  const click = () => send('click');
+  // eslint-disable-next-line no-unused-vars
+  const scroll = (dx, dy) => send('scroll', {dx, dy});
 
-    disconnect();
-  };
+  const copyTouch = ({identifier, pageX, pageY}) => ({identifier, pageX, pageY});
 
-  onMounted(() => {
-    if (interval) {
-      clearInterval(interval);
-    }
-    interval = setInterval(connect, 15000);
-    connect();
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    canvas.value.addEventListener('touchstart', handleStart);
-    canvas.value.addEventListener('touchend', handleEnd);
-    canvas.value.addEventListener('touchcancel', handleCancel);
-    canvas.value.addEventListener('touchmove', handleMove);
-  })
-  
-  onBeforeUnmount(() => {
-    if (interval) {
-      clearInterval(interval);
-    }
-
-    disconnect();
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-
-    canvas.value.removeEventListener('touchstart', handleStart)
-    canvas.value.removeEventListener('touchend', handleEnd)
-    canvas.value.removeEventListener('touchcancel', handleCancel)
-    canvas.value.removeEventListener('touchmove', handleMove)
-  })
+  const ongoingTouchIndexById = (idToFind) =>
+      ongoingTouches.findIndex(touch => touch.identifier === idToFind);
 
   const handleStart = (evt) => {
     evt.preventDefault();
-    const touches = evt.changedTouches;
+
+    if (evt.touches.length === 0) {
+      return;
+    }
 
     clientX = startX = evt.touches[0].clientX;
     clientY = startY = evt.touches[0].clientY;
 
-    for (let i = 0; i < touches.length; i++) {
-      ongoingTouches.push(copyTouch(touches[i]));
+    for (const touch of evt.changedTouches) {
+      ongoingTouches.push(copyTouch(touch));
     }
   };
-
-  const copyTouch = ({identifier, pageX, pageY}) => {
-    return {identifier, pageX, pageY};
-  };
-
-  const ongoingTouchIndexById = (idToFind) => {
-    for (let i = 0; i < ongoingTouches.length; i++) {
-      const id = ongoingTouches[i].identifier;
-
-      if (id === idToFind) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
-  const button = (name) => {
-    const payload = {
-      name: name
-    }
-
-    const message =
-        Object.keys(payload)
-            .reduce(function (acc, k) {
-              return acc.concat([k + ':' + payload[k]]);
-            }, ['type:' + 'button'])
-            .join('\n') + '\n\n';
-
-    if (special?.readyState === WebSocket.OPEN) {
-      special.send(message)
-    }
-  };
-
-  const move = (dx, dy) => {
-    const payload = {
-      dx: dx,
-      dy: dy,
-      drag: 0,
-    }
-    const message =
-        Object.keys(payload)
-            .reduce(function (acc, k) {
-              return acc.concat([k + ':' + payload[k]]);
-            }, ['type:' + 'move'])
-            .join('\n') + '\n\n';
-
-    if (special?.readyState === WebSocket.OPEN) {
-      special.send(message)
-    }
-  }
 
   const handleMove = (evt) => {
     evt.preventDefault();
 
-    const touches = evt.changedTouches;
+    for (const touch of evt.changedTouches) {
+      const idx = ongoingTouchIndexById(touch.identifier);
 
-    for (let i = 0; i < touches.length; i++) {
-      const idx = ongoingTouchIndexById(touches[i].identifier);
-
-      if (idx >= 0) {
-        const deltaX = Math.round((touches[i].clientX - clientX))
-        const deltaY = Math.round((touches[i].clientY - clientY))
-
-        clientX = touches[i].clientX;
-        clientY = touches[i].clientY;
-
-        if ((deltaX !== 0 && lastDeltaX !== deltaX) || (deltaY !== 0 && lastDeltaY !== deltaY)) {
-          move(deltaX, deltaY)
-        }
-
-        ongoingTouches.splice(idx, 1, copyTouch(touches[i]));  // swap in the new touch record
-      } else {
-        console.log('can\'t figure out which touch to continue');
+      if (idx < 0) {
+        continue;
       }
+
+      const deltaX = Math.round(touch.clientX - clientX);
+      const deltaY = Math.round(touch.clientY - clientY);
+
+      clientX = touch.clientX;
+      clientY = touch.clientY;
+
+      if (deltaX !== 0 || deltaY !== 0) {
+        move(deltaX, deltaY);
+      }
+
+      ongoingTouches.splice(idx, 1, copyTouch(touch)); // swap in the new touch record
     }
   };
 
   const handleEnd = (evt) => {
     evt.preventDefault();
 
-    lastDeltaY = 0;
-    lastDeltaX = 0;
-
-    const touches = evt.changedTouches;
-
-    if (evt.changedTouches[0].clientX - startX === 0 && evt.changedTouches[0].clientY - startY === 0) {
-      click()
+    const touch = evt.changedTouches[0];
+    if (touch && touch.clientX - startX === 0 && touch.clientY - startY === 0) {
+      click();
     }
 
-    for (let i = 0; i < touches.length; i++) {
-      let idx = ongoingTouchIndexById(touches[i].identifier);
+    for (const t of evt.changedTouches) {
+      const idx = ongoingTouchIndexById(t.identifier);
       if (idx >= 0) {
-        ongoingTouches.splice(idx, 1);  // remove it; we're done
-      } else {
-        console.log('can\'t figure out which touch to end');
+        ongoingTouches.splice(idx, 1); // remove it; we're done
       }
     }
   };
 
   const handleCancel = (evt) => {
     evt.preventDefault();
-    const touches = evt.changedTouches;
 
-    for (let i = 0; i < touches.length; i++) {
-      let idx = ongoingTouchIndexById(touches[i].identifier);
-      ongoingTouches.splice(idx, 1);
+    for (const touch of evt.changedTouches) {
+      const idx = ongoingTouchIndexById(touch.identifier);
+      if (idx >= 0) {
+        ongoingTouches.splice(idx, 1);
+      }
     }
   };
 
-  const click = () => {
-    const payload = {}
-    const message =
-        Object.keys(payload)
-            .reduce(function (acc, k) {
-              return acc.concat([k + ':' + payload[k]]);
-            }, ['type:' + 'click'])
-            .join('\n') + '\n\n';
+  const foregroundAppInfo = computed(() =>
+      props.device.properties.listLaunchPoints?.find(
+          point => point.id === props.device.properties.foregroundApp
+      )
+  );
 
-    if (special?.readyState === WebSocket.OPEN) {
-      special.send(message)
+  const togglePower = async () => {
+    if (powerPending.value) {
+      return;
     }
-  };
-  
-  const scroll = (dx, dy) => {
-    const payload = {
-      dx: dx,
-      dy: dy,
-    }
-    const message =
-        Object.keys(payload)
-            .reduce(function (acc, k) {
-              return acc.concat([k + ':' + payload[k]]);
-            }, ['type:' + 'scroll'])
-            .join('\n') + '\n\n';
 
-    if (special?.readyState === WebSocket.OPEN) {
-      special.send(message)
+    powerPending.value = true;
+    const method = props.device.properties.enabled ? 'disable' : 'enable';
+
+    try {
+      await Registry.call(props.device.id, method);
+    } finally {
+      setTimeout(() => {
+        powerPending.value = false;
+      }, 4000);
     }
   };
 
-  const foregroundAppInfo = computed(() => {
-    return props.device.properties.listLaunchPoints.find(point => point.id === props.device.properties.foregroundApp)
-  });
-
-  const disconnect = () => {
-    if (special) {
-      special.close()
+  // --- pointer connection lifecycle ---
+  const cleanupSocket = () => {
+    if (!pointerSocket) {
+      return;
     }
-    connected.value = false
-  }
+
+    pointerSocket.onopen = null;
+    pointerSocket.onclose = null;
+    pointerSocket.onmessage = null;
+    pointerSocket.onerror = null;
+
+    try {
+      pointerSocket.close();
+    } catch (e) { /* socket may already be closed */ }
+
+    pointerSocket = null;
+  };
 
   const connect = () => {
-    if (!connecting.value && !connected.value) {
-      connecting.value = true
-
-      special = new WebSocket('ws://192.168.0.197:9090/pointer')
-
-      special.onopen = function () {
-        connected.value = true
-        console.log("Special Соединение установлено.");
-      };
-
-      special.onclose = function (event) {
-        connected.value = false
-        if (event.wasClean) {
-          console.log('Special Соединение закрыто чисто');
-        } else {
-          console.log('Special Обрыв соединения'); // например, "убит" процесс сервера
-        }
-        console.log('Special Код: ' + event.code + ' причина: ' + event.reason);
-      };
-
-      special.onmessage = function (event) {
-        console.log("Special Получены данные " + event.data);
-      };
-
-      special.onerror = function (error) {
-        connected.value = false
-        special.close()
-        console.log("Special Ошибка " + error.message);
-      };
+    if (connecting.value || connected.value) {
+      return;
     }
 
-    connecting.value = false
-  }
+    connecting.value = true;
+    cleanupSocket();
+
+    const socket = new WebSocket(POINTER_URL);
+    pointerSocket = socket;
+
+    // Guard every handler so a stale (replaced) socket can't flip our state.
+    socket.onopen = () => {
+      if (pointerSocket !== socket) return;
+      connecting.value = false;
+      connected.value = true;
+    };
+
+    socket.onclose = () => {
+      if (pointerSocket !== socket) return;
+      connecting.value = false;
+      connected.value = false;
+    };
+
+    socket.onerror = () => {
+      if (pointerSocket !== socket) return;
+      connecting.value = false;
+      connected.value = false;
+    };
+  };
+
+  const disconnect = () => {
+    connecting.value = false;
+    connected.value = false;
+    cleanupSocket();
+  };
+
+  const startReconnectLoop = () => {
+    stopReconnectLoop();
+    reconnectTimer = setInterval(connect, RECONNECT_INTERVAL);
+    connect();
+  };
+
+  const stopReconnectLoop = () => {
+    if (reconnectTimer) {
+      clearInterval(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      stopReconnectLoop();
+      disconnect();
+    } else {
+      startReconnectLoop();
+    }
+  };
+
+  const handleBeforeUnload = () => {
+    stopReconnectLoop();
+    disconnect();
+  };
+
+  onMounted(() => {
+    startReconnectLoop();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    canvas.value?.addEventListener('touchstart', handleStart, {passive: false});
+    canvas.value?.addEventListener('touchend', handleEnd);
+    canvas.value?.addEventListener('touchcancel', handleCancel);
+    canvas.value?.addEventListener('touchmove', handleMove, {passive: false});
+  });
+
+  onBeforeUnmount(() => {
+    stopReconnectLoop();
+    disconnect();
+
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+
+    canvas.value?.removeEventListener('touchstart', handleStart);
+    canvas.value?.removeEventListener('touchend', handleEnd);
+    canvas.value?.removeEventListener('touchcancel', handleCancel);
+    canvas.value?.removeEventListener('touchmove', handleMove);
+  });
 </script>
 
 <template>
@@ -299,7 +273,7 @@
 
     <template #action>
       <Toggle
-          v-on:click="Registry.call(device.id, device.properties.enabled ? 'disable' : 'enable')"
+          v-on:click="togglePower"
           :value="device.properties.enabled"></Toggle>
     </template>
 
@@ -395,7 +369,7 @@
           </div>
           <div class="flex flex-wrap justify-center">
             <div @click="Registry.call(device.id, 'openApp', {value: listLaunchPoint.id})" :key="listLaunchPoint.id" style="max-width: 90px"
-                 v-for="listLaunchPoint in device.properties.listLaunchPoints"
+                 v-for="listLaunchPoint in (device.properties.listLaunchPoints || [])"
                  class="m-2 border-1 border-dark flex-grow flex flex-col justify-center items-center flex-wrap">
               <img :src="listLaunchPoint.icon" :alt="listLaunchPoint.id" height="50" width="50">
               <span class="text-center" style="font-size: 10px">{{ listLaunchPoint.title }}</span>
