@@ -1,8 +1,6 @@
 <script setup>
   import Device from "@/components/Device.vue";
   import Toggle from "@/components/controls/Toggle.vue";
-  import List from "@/components/properties/List.vue";
-  import Section from "@/components/properties/Section.vue";
   import {registry as Registry} from "@/registry";
   import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 
@@ -265,10 +263,13 @@
     </template>
 
     <template #status>
-      <div v-if="device.properties.enabled" class="flex flex-row place-items-center gap-2">
-        <img v-if="foregroundAppInfo" style="height: 20px" :src="foregroundAppInfo?.icon" alt="icon">
-        <span class="flex flex-row place-items-center gap-2">{{ foregroundAppInfo?.title }} | <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="height: 20px;enable-background:new 0 0 512 512" xml:space="preserve"><g><linearGradient id="a" x1="12" x2="12" y1="2" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#00bcd4"></stop><stop offset="1" stop-color="#1976d2"></stop></linearGradient><path fill="url(#a)" d="M18.36 19.36a1 1 0 0 1-.705-1.71C19.167 16.148 20 14.142 20 12s-.833-4.148-2.345-5.65a1 1 0 0 1 1.41-1.42C20.958 6.813 22 9.323 22 12s-1.042 5.188-2.935 7.07a.998.998 0 0 1-.705.29zm-2.127-3.12C17.356 15.13 18 13.586 18 12s-.644-3.13-1.767-4.24a1 1 0 0 0-1.406 1.421C15.572 9.918 16 10.946 16 12s-.428 2.082-1.173 2.819a1 1 0 1 0 1.406 1.422zm-3.85 5.684A1 1 0 0 0 13 21V3a1 1 0 0 0-1.707-.707L6.586 7H4c-1.103 0-2 .897-2 2v6c0 1.103.897 2 2 2h2.586l4.707 4.707a1 1 0 0 0 1.09.217zM7 9a1 1 0 0 0 .707-.293L11 5.414v13.172l-3.293-3.293A1 1 0 0 0 7 15H4V9z" opacity="1" data-original="url(#a)"></path></g></svg> {{ device.properties.volume }}</span>
-      </div>
+      <span v-if="device.properties.enabled" class="inline-flex items-center gap-1.5">
+        <img v-if="foregroundAppInfo" :src="foregroundAppInfo.icon" class="h-4 w-4 rounded" alt="">
+        <span class="truncate">{{ foregroundAppInfo?.title || 'Home' }}</span>
+        <span class="text-gray-300">•</span>
+        <span class="whitespace-nowrap">Vol {{ device.properties.volume }}</span>
+      </span>
+      <span v-else class="text-gray-400">Standby</span>
     </template>
 
     <template #action>
@@ -278,109 +279,232 @@
     </template>
 
     <template #extended>
-      <Section>
-        <List>
-<!--          <Item label="Volume">-->
-<!--            <CounterInput v-on:update:value="value => Bus.execute(device.id, 'setVolume', {value: value})" v-model:value="device.properties.volume" :min="0" :max="99"></CounterInput>-->
-<!--          </Item>-->
-<!--          <Item label="Last update">-->
-<!--            <LastUpdate :timestamp="device.properties.updatedAt"></LastUpdate>-->
-<!--          </item>-->
-          <div class="flex gap-1">
-            <div class="max-w-xs flex flex-col rounded-lg shadow-sm flex-grow">
-              <button @click.self="Registry.call(device.id, 'volumeUp')" type="button" class="flex justify-center py-3 px-4 items-center gap-x-2 rounded-t-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                +
-              </button>
-              <button @click.self="Registry.call(device.id, 'volumeDown')" type="button" class="flex justify-center py-3 px-4 items-center gap-x-2 rounded-b-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                -
-              </button>
-            </div>
-            <div class="max-w-xs flex flex-col rounded-lg shadow-sm">
-              <button @click.self="Registry.call(device.id, 'play')" type="button" class="flex justify-center py-3 px-4 items-center gap-x-2 rounded-t-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                Play
-              </button>
-              <button @click.self="Registry.call(device.id, 'pause')" type="button" class="flex justify-center py-3 px-4 items-center gap-x-2 rounded-b-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                Pause
-              </button>
-            </div>
-            <div class="max-w-xs flex flex-col rounded-lg shadow-sm">
-              <button @click.self="Registry.call(device.id, 'openApp', {value: 'com.webos.app.photovideo'})" type="button" class="flex justify-center py-3 px-4 items-center gap-x-2 rounded-t-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                Gallery
-              </button>
-              <button @click.self="Registry.call(device.id, 'toggleMute')" type="button" class="flex justify-center py-3 px-4 items-center gap-x-2 rounded-b-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                {{ device.properties.muted ? 'Unmute' : 'Mute' }}
-              </button>
-            </div>
-            <div class="max-w-xs flex flex-col rounded-lg shadow-sm">
-              <button @click.self="button('HOME')" type="button" class="flex flex-grow justify-center py-3 px-4 items-center gap-x-2 rounded-t-md rounded-b-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-                Home
-              </button>
-            </div>
-          </div>
-          <div>
-          <div class="flex flex-grow gap-1">
-            <button @click.self="button('BACK')" type="button" class="w-1 flex justify-center flex-grow py-3 px-4 items-center gap-x-2 rounded-t-md rounded-b-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-              Back
-            </button>
-            <button @click.self="button('MENU')" type="button" class="w-1 flex justify-center flex-grow py-3 px-4 items-center gap-x-2 rounded-t-md rounded-b-md text-sm font-medium focus:z-10 border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 dark:focus:outline-none dark:focus:ring-1 dark:focus:ring-gray-600">
-              Settings
-            </button>
-          </div>
-          </div>
-          <div ref="canvas" style="min-height: 300px; height: 300px; width: 100%; background: grey; margin-top: 10px;"></div>
-          <div class="flex justify-center">
-            <svg style="width: 75%;" class="" viewBox="-5 -5 150 150" preserveAspectRatio="xMidYMin">
-              <defs>
-              </defs>
-              <path @click="button('UP')"
-                    d="M 20.143 20.608 C 46.708 -5.699 89.622 -5.373 115.857 20.608 L 68 68 L 20.143 20.608"
-                    fill="rgba(255,255,255,0.8)" style="stroke: #273134;"></path>
-              <path @click="button('DOWN')"
-                    d="M 20.143 87.607 C 46.708 61.301 89.622 61.626 115.857 87.607 L 68 135 L 20.143 87.607"
-                    fill="rgba(255,255,255,0.8)" style="stroke: #273134;"
-                    transform="matrix(-1, 0, 0, -1, 136.000004, 202.999184)"></path>
-              <path @click="button('RIGHT')"
-                    d="M 53.643 54.108 C 80.208 27.801 123.121 28.126 149.356 54.108 L 101.5 101.5 L 53.643 54.108"
-                    fill="rgba(255,255,255,0.8)" style="stroke: #273134;"
-                    transform="matrix(0, 1, -1, 0, 169.499218, -33.499783)"></path>
-              <path @click="button('LEFT')"
-                    d="M -13.356 54.108 C 13.209 27.801 56.122 28.126 82.357 54.108 L 34.5 101.5 L -13.356 54.108"
-                    fill="rgba(255,255,255,0.8)" style="stroke: #273134;"
-                    transform="matrix(0, -1, 1, 0, -33.499215, 102.50022)"></path>
-              <ellipse @click="button('ENTER')"
-                       style="stroke: #273134; stroke-width: 2px; paint-order: fill; fill: #273134;" cx="68"
-                       cy="68"
-                       rx="24" ry="24"></ellipse>
+      <div class="remote -m-4 flex min-h-[100dvh] flex-col gap-4 p-5 text-zinc-200 sm:min-h-0">
 
-              <polyline @click="button('RIGHT')" style="stroke: #273134; fill: none;"
-                        points="117.881 63.062 109.974 64.636 108.56 73.232 108.56 73.232"
-                        transform="matrix(-0.731353, 0.681999, -0.681999, -0.731353, 242.500846, 40.770254)"></polyline>
-              <polyline @click="button('LEFT')" style="stroke: #273134; fill: none;"
-                        points="27.881 63.062 19.974 64.636 18.56 73.232 18.56 73.232"
-                        transform="matrix(0.731353, -0.681999, 0.681999, 0.731353, -40.238072, 34.143839)"></polyline>
-              <polyline @click="button('UP')" style="stroke: #273134; fill: none;"
-                        points="71.881 16.062 63.974 17.636 62.56 26.232 62.56 26.232"
-                        transform="matrix(0.681999, 0.731353, -0.731353, 0.681999, 36.842109, -42.437153)"></polyline>
-              <polyline @click="button('DOWN')" style="stroke: #273134; fill: none;"
-                        points="71.881 111.062 63.974 112.636 62.56 121.232 62.56 121.232"
-                        transform="matrix(-0.681999, -0.731353, 0.731353, -0.681999, 28.120345, 244.521058)"></polyline>
-
-            </svg>
+        <!-- Header -->
+        <div class="pr-10">
+          <div class="flex items-center gap-2.5">
+            <span class="relative flex h-2.5 w-2.5">
+              <span v-if="device.properties.enabled" class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+              <span class="relative inline-flex h-2.5 w-2.5 rounded-full" :class="device.properties.enabled ? 'bg-emerald-400' : 'bg-zinc-600'"></span>
+            </span>
+            <h3 class="truncate text-base font-semibold text-white">{{ item.name }}</h3>
           </div>
-          <div class="flex flex-wrap justify-center">
-            <div @click="Registry.call(device.id, 'openApp', {value: listLaunchPoint.id})" :key="listLaunchPoint.id" style="max-width: 90px"
-                 v-for="listLaunchPoint in (device.properties.listLaunchPoints || [])"
-                 class="m-2 border-1 border-dark flex-grow flex flex-col justify-center items-center flex-wrap">
-              <img :src="listLaunchPoint.icon" :alt="listLaunchPoint.id" height="50" width="50">
-              <span class="text-center" style="font-size: 10px">{{ listLaunchPoint.title }}</span>
+          <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
+            <span class="inline-flex items-center gap-1.5">
+              <img v-if="foregroundAppInfo" :src="foregroundAppInfo.icon" class="h-4 w-4 rounded" alt="">
+              {{ foregroundAppInfo?.title || (device.properties.enabled ? 'Home' : 'Standby') }}
+            </span>
+            <span class="text-zinc-700">•</span>
+            <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5"
+                  :class="connected ? 'bg-emerald-500/10 text-emerald-300' : connecting ? 'bg-amber-500/10 text-amber-300' : 'bg-zinc-500/10 text-zinc-400'">
+              <span class="h-1.5 w-1.5 rounded-full" :class="connected ? 'bg-emerald-400' : connecting ? 'animate-pulse bg-amber-400' : 'bg-zinc-500'"></span>
+              {{ connected ? 'Connected' : connecting ? 'Connecting…' : 'Offline' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Top actions -->
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" @click="togglePower" :disabled="powerPending" class="group flex flex-col items-center gap-1.5 disabled:opacity-60">
+            <span class="flex h-12 w-12 items-center justify-center rounded-2xl border transition duration-150 active:scale-95"
+                  :class="device.properties.enabled
+                    ? 'power-on border-red-400/40 bg-gradient-to-b from-red-500 to-red-600 text-white'
+                    : 'border-white/10 bg-white/5 text-zinc-300 group-hover:bg-white/10'">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 3v9"/><path d="M6.6 6.6a8 8 0 1 0 10.8 0"/></svg>
+            </span>
+            <span class="text-[10px] font-medium text-zinc-500">Power</span>
+          </button>
+
+          <button type="button" @click="button('HOME')" class="group flex flex-col items-center gap-1.5">
+            <span class="keycap">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.2V20h13v-9.8"/></svg>
+            </span>
+            <span class="text-[10px] font-medium text-zinc-500">Home</span>
+          </button>
+
+          <button type="button" @click="button('MENU')" class="group flex flex-col items-center gap-1.5">
+            <span class="keycap">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </span>
+            <span class="text-[10px] font-medium text-zinc-500">Settings</span>
+          </button>
+
+          <button type="button" @click="button('BACK')" class="group flex flex-col items-center gap-1.5">
+            <span class="keycap">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+            </span>
+            <span class="text-[10px] font-medium text-zinc-500">Back</span>
+          </button>
+        </div>
+
+        <!-- D-pad -->
+        <div class="flex justify-center py-1">
+          <div class="dpad relative grid aspect-square w-56 max-w-[72%] grid-cols-3 grid-rows-3 place-items-center rounded-full p-2">
+            <button type="button" @click="button('UP')" class="dpad-btn col-start-2 row-start-1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m6 15 6-6 6 6"/></svg>
+            </button>
+            <button type="button" @click="button('LEFT')" class="dpad-btn col-start-1 row-start-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m15 6-6 6 6 6"/></svg>
+            </button>
+            <button type="button" @click="button('ENTER')" class="dpad-ok col-start-2 row-start-2">OK</button>
+            <button type="button" @click="button('RIGHT')" class="dpad-btn col-start-3 row-start-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button type="button" @click="button('DOWN')" class="dpad-btn col-start-2 row-start-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Touchpad -->
+        <div class="flex min-h-[150px] flex-1 flex-col">
+          <div ref="canvas" class="touchpad relative flex flex-1 select-none items-center justify-center rounded-3xl" style="touch-action: none;">
+            <span class="pointer-events-none flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-600">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Touchpad
+            </span>
+          </div>
+        </div>
+
+        <!-- Volume rocker -->
+        <div class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-2">
+          <button type="button" @click="Registry.call(device.id, 'volumeDown')" class="rbtn h-11 w-11 shrink-0 rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5"><path d="M5 12h14"/></svg>
+          </button>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between text-xs text-zinc-400">
+              <span class="inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+                Volume
+              </span>
+              <span class="font-semibold text-white">{{ device.properties.muted ? 'Muted' : device.properties.volume }}</span>
+            </div>
+            <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-300"
+                   :class="{'opacity-30': device.properties.muted}"
+                   :style="{ width: Math.max(0, Math.min(100, device.properties.volume)) + '%' }"></div>
             </div>
           </div>
-        </List>
-      </Section>
+          <button type="button" @click="Registry.call(device.id, 'volumeUp')" class="rbtn h-11 w-11 shrink-0 rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-5 w-5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" @click="Registry.call(device.id, 'toggleMute')" class="rbtn h-12 rounded-2xl"
+                  :class="device.properties.muted ? '!border-red-400/30 !bg-red-500/20 text-red-300' : ''">
+            <svg v-if="device.properties.muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a8 8 0 0 1 0 12"/></svg>
+          </button>
+          <button type="button" @click="Registry.call(device.id, 'play')" class="rbtn h-12 rounded-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M6 4.5v15a1 1 0 0 0 1.53.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 6 4.5z"/></svg>
+          </button>
+          <button type="button" @click="Registry.call(device.id, 'pause')" class="rbtn h-12 rounded-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>
+          </button>
+          <button type="button" @click="Registry.call(device.id, 'openApp', {value: 'com.webos.app.photovideo'})" class="rbtn h-12 rounded-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          </button>
+        </div>
+
+        <!-- App launcher -->
+        <div v-if="(device.properties.listLaunchPoints || []).length" class="-mx-1">
+          <div class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Apps</div>
+          <div class="apps-scroll flex gap-2 overflow-x-auto px-1 pb-1">
+            <button type="button" v-for="lp in device.properties.listLaunchPoints" :key="lp.id"
+                    @click="Registry.call(device.id, 'openApp', {value: lp.id})"
+                    class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 rounded-2xl border p-2 transition active:scale-95"
+                    :class="lp.id === device.properties.foregroundApp ? 'border-sky-400/50 bg-sky-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'">
+              <img :src="lp.icon" :alt="lp.title" class="h-10 w-10 rounded-xl object-cover">
+              <span class="w-full truncate text-center text-[10px] text-zinc-300">{{ lp.title }}</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
     </template>
   </Device>
 </template>
 
 <style scoped>
+  .remote {
+    background:
+      radial-gradient(130% 90% at 50% -10%, rgba(80, 90, 120, 0.28) 0%, rgba(20, 20, 26, 0) 55%),
+      linear-gradient(180deg, #17171c 0%, #0d0d11 100%);
+  }
 
+  /* Square icon key (Home / Settings / Back) */
+  .keycap {
+    @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-zinc-300 shadow-sm transition duration-150 active:scale-95;
+  }
+  .group:hover .keycap {
+    @apply border-white/20 bg-white/10 text-white;
+  }
+
+  /* Generic round/rounded control button */
+  .rbtn {
+    @apply flex items-center justify-center border border-white/10 bg-white/5 text-zinc-200 shadow-sm transition duration-150 hover:bg-white/10 hover:text-white active:scale-95;
+  }
+
+  /* D-pad */
+  .dpad {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: radial-gradient(circle at 50% 34%, #2a2a33 0%, #16161b 70%);
+    box-shadow:
+      inset 0 2px 6px rgba(0, 0, 0, 0.55),
+      inset 0 -2px 4px rgba(255, 255, 255, 0.04),
+      0 10px 26px rgba(0, 0, 0, 0.5);
+  }
+  .dpad-btn {
+    @apply flex h-full w-full items-center justify-center rounded-2xl text-zinc-300 transition duration-150 hover:bg-white/10 hover:text-white active:scale-90;
+  }
+  .dpad-ok {
+    height: 100%;
+    width: 100%;
+    @apply flex items-center justify-center rounded-full text-sm font-semibold tracking-wide text-white transition duration-150 active:scale-95;
+    background: radial-gradient(circle at 50% 35%, #2f2f38 0%, #17171c 75%);
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.35),
+      0 0 18px rgba(56, 189, 248, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .dpad-ok:hover {
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.55),
+      0 0 24px rgba(56, 189, 248, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Power button glow when the TV is on */
+  .power-on {
+    box-shadow:
+      0 0 0 1px rgba(248, 113, 113, 0.5),
+      0 0 22px 1px rgba(239, 68, 68, 0.45);
+  }
+
+  /* Touchpad surface */
+  .touchpad {
+    background-color: #0e0e13;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: 16px 16px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      inset 0 0 44px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .touchpad:active {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      inset 0 0 60px rgba(56, 189, 248, 0.12);
+  }
+
+  /* Hide the app-row scrollbar */
+  .apps-scroll {
+    scrollbar-width: none;
+  }
+  .apps-scroll::-webkit-scrollbar {
+    display: none;
+  }
 </style>

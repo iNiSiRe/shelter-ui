@@ -28,4 +28,8 @@ coverage
 *.sw?
 
 .env
+.env.production
 public/dashboard.yaml
+
+# deploy build tarballs
+*.tar.gz
