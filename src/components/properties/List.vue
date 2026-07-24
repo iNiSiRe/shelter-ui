@@ -1,13 +1,11 @@
 <script setup>
-
 </script>
 
 <template>
-  <ul role="list" class="divide-y divide-gray-100 rounded-md border border-gray-200">
+  <ul role="list" class="field-list">
     <slot></slot>
   </ul>
 </template>
 
 <style scoped>
-
 </style>

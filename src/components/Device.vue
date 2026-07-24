@@ -1,53 +1,79 @@
 <script setup>
-  import {ref} from "vue";
+  import {computed, ref} from "vue";
+
+  const props = defineProps({
+    // Semantic accent per device family.
+    accent: {type: String, default: 'slate'},
+    // Whether the device is currently "on"/active — drives the accent glow.
+    active: {type: Boolean, default: false},
+    // TV remote paints its own full-bleed content; skip the generic modal header.
+    bareExtended: {type: Boolean, default: false},
+  });
 
   const extended = ref(false);
+
+  const ACCENTS = {
+    amber: '245 158 11',
+    cyan: '34 211 238',
+    sky: '56 189 248',
+    emerald: '52 211 153',
+    violet: '167 139 250',
+    rose: '251 113 133',
+    red: '239 68 68',
+    slate: '148 163 184',
+  };
+
+  const accentRgb = computed(() => ACCENTS[props.accent] ?? ACCENTS.slate);
 </script>
 
 <template>
-  <div class="flex min-w-0 gap-x-4">
-    <div @click="extended = !extended" class="h-12 w-12 flex-none rounded-full cursor-pointer">
-      <slot name="icon"></slot>
+  <div class="card" :class="{'is-active': active}" :style="{'--accent-rgb': accentRgb}">
+    <!-- Collapsed card -->
+    <div class="card-main" role="button" tabindex="0" @click="extended = true" @keydown.enter="extended = true">
+      <div class="card-top">
+        <span class="icon-chip"><slot name="icon"></slot></span>
+        <div class="flex items-center" @click.stop>
+          <slot name="action"></slot>
+        </div>
+      </div>
+      <div class="min-w-0">
+        <p class="card-title truncate"><slot name="title"></slot></p>
+        <p class="card-status"><slot name="status"></slot></p>
+      </div>
     </div>
-    <div class="min-w-0 flex-auto">
-      <p class="text-sm font-semibold leading-6 text-gray-900">
-        <slot name="title"></slot>
-      </p>
-      <p class="mt-1 truncate text-xs leading-5 text-gray-500">
-        <slot name="status"></slot>
-      </p>
-    </div>
-  </div>
 
-  <div class="shrink-0 flex flex-col items-end justify-center">
-      <slot name="action"></slot>
-  </div>
+    <!-- Expanded modal: full-screen on mobile, centered card on sm:+ -->
+    <div v-show="extended" class="relative z-10" role="dialog" aria-modal="true">
+      <div @click="extended = false" class="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"></div>
 
-  <div v-show="extended" class="relative z-10" role="dialog" aria-modal="true">
-    <!-- Backdrop -->
-    <div @click="extended = false" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"></div>
+      <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full justify-center items-stretch sm:items-start sm:p-4">
+          <div class="sheet w-full min-h-full sm:min-h-0 sm:max-w-[500px] sm:my-6 sm:rounded-3xl">
 
-    <div class="fixed inset-0 z-10 overflow-y-auto">
-      <!-- Edge-to-edge sheet on mobile, centered card on sm:+ -->
-      <div class="flex min-h-full justify-center items-stretch sm:items-start sm:p-4">
-        <div class="relative flex w-full flex-col min-h-full sm:min-h-0 sm:max-w-[500px] overflow-hidden bg-white text-left shadow-2xl transition-all sm:my-6 sm:rounded-3xl">
+            <button type="button" @click="extended = false" aria-label="Close"
+                    class="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-gray-800 ring-1 ring-black/10 shadow backdrop-blur transition hover:bg-white active:scale-95">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
 
-          <!-- Frosted close button — legible on light and dark panels -->
-          <button type="button" @click="extended = false" aria-label="Close"
-                  class="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/70 text-gray-700 ring-1 ring-black/10 shadow-sm backdrop-blur transition hover:bg-white active:scale-95">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
+            <div class="flex-1 flex flex-col p-4" :class="{'gap-5': !bareExtended}">
+              <!-- Generic modal header (skipped for the TV remote) -->
+              <div v-if="!bareExtended" class="flex items-center gap-3 pr-10">
+                <span class="icon-chip"><slot name="icon"></slot></span>
+                <div class="min-w-0">
+                  <p class="card-title truncate"><slot name="title"></slot></p>
+                  <p class="card-status"><slot name="status"></slot></p>
+                </div>
+              </div>
 
-          <div class="flex-1 flex flex-col p-4">
-            <slot name="extended"></slot>
+              <slot name="extended"></slot>
+            </div>
+
           </div>
         </div>
       </div>
     </div>
   </div>
-
 </template>
 
 <style scoped>
-
 </style>
