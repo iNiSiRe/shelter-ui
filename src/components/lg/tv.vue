@@ -127,6 +127,13 @@
       )
   );
 
+  // Pin YouTube to the first slot of the app launcher
+  const launchPoints = computed(() => {
+    const points = props.device.properties.listLaunchPoints || [];
+    const isYouTube = point => point.id === 'youtube.leanback.v4' || /youtube/i.test(point.title || '');
+    return [...points.filter(isYouTube), ...points.filter(point => !isYouTube(point))];
+  });
+
   const togglePower = async () => {
     if (powerPending.value) {
       return;
@@ -410,10 +417,10 @@
         </div>
 
         <!-- App launcher -->
-        <div v-if="(device.properties.listLaunchPoints || []).length" class="-mx-1">
+        <div v-if="launchPoints.length" class="-mx-1">
           <div class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Apps</div>
           <div class="apps-scroll flex gap-2 overflow-x-auto px-1 pb-1">
-            <button type="button" v-for="lp in device.properties.listLaunchPoints" :key="lp.id"
+            <button type="button" v-for="lp in launchPoints" :key="lp.id"
                     @click="Registry.call(device.id, 'openApp', {value: lp.id})"
                     class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 rounded-2xl border p-2 transition active:scale-95"
                     :class="lp.id === device.properties.foregroundApp ? 'border-sky-400/50 bg-sky-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'">
