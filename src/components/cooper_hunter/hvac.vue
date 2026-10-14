@@ -65,7 +65,11 @@
     </template>
 
     <template #status>
-      {{ device.properties.indoorTemperature }}℃ <span class="text-zinc-600">/</span> {{ device.properties.wdNumber.toFixed(1) }}℃
+      <!-- available is false while the unit is off at the mains or off the network -->
+      <template v-if="device.properties.available !== false">
+        {{ device.properties.indoorTemperature }}℃ <span class="text-zinc-600">/</span> {{ device.properties.wdNumber.toFixed(1) }}℃
+      </template>
+      <span v-else class="pill pill-muted"><span class="pill-dot"></span>Offline</span>
     </template>
 
     <template #action>
@@ -168,6 +172,11 @@
             <Toggle
                 v-on:click="Registry.call(device.id, 'setLights', {value: device.properties.lighting ? 0 : 1})"
                 :value="device.properties.lighting === 1"></Toggle>
+          </Item>
+          <Item label="Connection">
+            <span :class="device.properties.available !== false ? 'pill pill-accent' : 'pill pill-muted'">
+              <span class="pill-dot"></span>{{ device.properties.available !== false ? 'Online' : 'Offline' }}
+            </span>
           </Item>
           <Item label="Last update">
             <LastUpdate :timestamp="device.properties.updatedAt"></LastUpdate>

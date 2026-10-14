@@ -64,8 +64,69 @@
 
   const scheduleDays = computed(() => DAYS.map((label, day) => ({
     label,
+    day,
     periods: state.value.schedule?.[day] ?? [],
   })));
+
+  // --- schedule editing ---
+  // One call per day: the device refuses several days in a single request, and the bus
+  // gives any call 5 s — one day's write fits comfortably, a whole week would not.
+  const selectedDay = ref(0);
+  const draft = ref([]);
+  const saving = ref('');
+  const saveError = ref('');
+
+  const selectDay = (day) => {
+    selectedDay.value = day;
+    saveError.value = '';
+    draft.value = (state.value.schedule?.[day] ?? []).map(period => ({...period}));
+  };
+
+  selectDay(0);
+
+  const dirty = computed(() =>
+      JSON.stringify(draft.value) !== JSON.stringify(state.value.schedule?.[selectedDay.value] ?? []));
+
+  const addPeriod = () => {
+    const last = draft.value[draft.value.length - 1];
+    draft.value.push({
+      time: last ? '12:00' : '08:00',
+      temperature: last ? last.temperature : Math.round((state.value.lowerLimit + state.value.upperLimit) / 2),
+    });
+  };
+
+  const removePeriod = (index) => draft.value.splice(index, 1);
+
+  const payload = () => draft.value.map(({time, temperature}) => ({time, temperature: Number(temperature)}));
+
+  const saveDay = async () => {
+    saving.value = 'day';
+    saveError.value = '';
+
+    const result = await call('setSchedule', {day: selectedDay.value, periods: payload()});
+    if (result.code !== 0) {
+      saveError.value = result.data?.error ?? 'Failed to save';
+    }
+
+    saving.value = '';
+  };
+
+  const saveWeek = async () => {
+    saveError.value = '';
+    const periods = payload();
+
+    for (let day = 0; day < DAYS.length; day++) {
+      saving.value = `${day + 1}/${DAYS.length}`;
+
+      const result = await call('setSchedule', {day, periods});
+      if (result.code !== 0) {
+        saveError.value = `${DAYS[day]}: ${result.data?.error ?? 'failed to save'}`;
+        break;
+      }
+    }
+
+    saving.value = '';
+  };
 </script>
 
 <template>
@@ -182,8 +243,11 @@
       </Section>
 
       <Section name="Schedule">
+        <!-- The week as it stands; tap a day to load it into the editor below. -->
         <List>
-          <li v-for="day in scheduleDays" :key="day.label" class="field-row">
+          <li v-for="day in scheduleDays" :key="day.label"
+              class="field-row day-row" :class="{'is-sel': selectedDay === day.day}"
+              role="button" tabindex="0" @click="selectDay(day.day)" @keydown.enter="selectDay(day.day)">
             <span class="field-label">{{ day.label }}</span>
             <div class="field-value flex flex-wrap items-center justify-end gap-1.5">
               <span v-for="period in day.periods" :key="period.time" class="pill">
@@ -193,6 +257,41 @@
             </div>
           </li>
         </List>
+
+        <p class="section-title mt-4">Edit {{ DAYS[selectedDay] }}</p>
+        <List>
+          <li v-for="(period, index) in draft" :key="index" class="field-row">
+            <input type="time" v-model="period.time" class="period-input" :aria-label="`Period ${index + 1} time`">
+            <div class="field-value flex items-center gap-2">
+              <CounterInput v-model:value="period.temperature"
+                            :min="state.lowerLimit" :max="state.upperLimit"></CounterInput>
+              <button type="button" @click="removePeriod(index)" class="ctl-btn h-8 w-8" aria-label="Remove period">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="h-4 w-4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </li>
+          <li v-if="!draft.length" class="field-row">
+            <span class="text-zinc-500">No periods — the device needs at least one.</span>
+          </li>
+        </List>
+
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" @click="addPeriod" class="ctl-btn px-3 py-1.5 text-sm"
+                  :disabled="draft.length >= state.maxSchedulePeriods || !!saving">
+            + Add period
+          </button>
+          <button type="button" @click="saveDay" class="ctl-btn px-3 py-1.5 text-sm font-semibold"
+                  :disabled="!dirty || !draft.length || !!saving">
+            {{ saving === 'day' ? 'Saving…' : `Save ${DAYS[selectedDay]}` }}
+          </button>
+          <button type="button" @click="saveWeek" class="ctl-btn px-3 py-1.5 text-sm"
+                  :disabled="!draft.length || !!saving">
+            {{ saving && saving !== 'day' ? `Saving ${saving}…` : 'Apply to all days' }}
+          </button>
+          <button type="button" v-if="dirty && !saving" @click="selectDay(selectedDay)"
+                  class="ctl-btn px-3 py-1.5 text-sm">Reset</button>
+        </div>
+        <p v-if="saveError" class="mt-2 text-xs text-rose-400">{{ saveError }}</p>
       </Section>
 
       <Section name="Comfort">
@@ -324,6 +423,33 @@
   }
   .away-apply {
     @apply py-1.5 text-sm font-semibold sm:col-span-2;
+  }
+
+  /* Schedule editor */
+  .day-row {
+    @apply cursor-pointer transition duration-150;
+  }
+  .day-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .day-row.is-sel {
+    background: rgb(var(--accent-rgb) / 0.1);
+    box-shadow: inset 2px 0 0 rgb(var(--accent-rgb));
+  }
+  .period-input {
+    @apply rounded-lg px-2.5 py-1.5 text-sm font-semibold text-white outline-none transition duration-150;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color-scheme: dark;
+  }
+  .period-input:focus {
+    border-color: rgb(var(--accent-rgb));
+  }
+  .ctl-btn:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+  .ctl-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .pill-ok {
