@@ -7,6 +7,7 @@
   import Section from "@/components/properties/Section.vue";
   import LastUpdate from "@/components/properties/LastUpdate.vue";
   import {registry as Registry} from "@/registry";
+  import {airLevel, airMetrics} from "@/air";
 
   const props = defineProps({
     item: Object,
@@ -32,31 +33,8 @@
 
   const TARGETS = [30, 40, 50, 60, 70];
 
-  // The Dyson app's own bands: good, fair, poor, very poor above the last limit.
-  const LEVELS = [
-    {word: 'добре', rgb: '48 209 88'},
-    {word: 'помірно', rgb: '255 214 10'},
-    {word: 'погано', rgb: '255 159 10'},
-    {word: 'дуже погано', rgb: '255 69 58'},
-  ];
-  const METRICS = [
-    {key: 'pm25', label: 'PM2.5', unit: 'мкг/м³', limits: [35, 53, 70]},
-    {key: 'pm10', label: 'PM10', unit: 'мкг/м³', limits: [50, 75, 100]},
-    {key: 'voc', label: 'Леткі органічні', unit: 'індекс', limits: [3, 6, 8]},
-    {key: 'no2', label: 'NO₂', unit: 'індекс', limits: [3, 6, 8]},
-    {key: 'hcho', label: 'Формальдегід', unit: 'мг/м³', limits: [0.099, 0.299, 0.499]},
-  ];
-
-  const metrics = computed(() => METRICS
-      .map(metric => {
-        const value = p.value[metric.key];
-        return {...metric, value, level: value === null || value === undefined ? null : LEVELS[metric.limits.filter(limit => value > limit).length]};
-      })
-      .filter(metric => metric.value !== null && metric.value !== undefined));
-
-  // The air as good as its worst reading.
-  const air = computed(() => metrics.value.length === 0 ? null
-      : metrics.value.reduce((worst, metric) => LEVELS.indexOf(metric.level) > LEVELS.indexOf(worst) ? metric.level : worst, LEVELS[0]));
+  const metrics = computed(() => airMetrics(p.value));
+  const air = computed(() => airLevel(p.value));
 
   const show = (value) => value % 1 === 0 ? value : value < 1 ? value.toFixed(value < 0.1 ? 3 : 1) : value.toFixed(1);
 

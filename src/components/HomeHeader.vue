@@ -1,5 +1,6 @@
 <script setup>
   import {computed, onMounted, onUnmounted, ref} from "vue";
+  import {AIR_LEVELS, airLevel} from "@/air";
 
   const props = defineProps({
     devices: Array,
@@ -36,6 +37,7 @@
     const guard = find('guard');
     const battery = find('marstek_venus');
     const weather = find('weather_outdoor');
+    const humidifier = find('dyson_humidifier');
 
     // Alerts first: they are why anyone looks.
     for (const leak of byModel('lumi.sensor_wleak.aq1')) {
@@ -62,6 +64,18 @@
       const charging = battery.ongridPower !== null && battery.ongridPower < 0;
       list.push({icon: 'battery', text: `${battery.soc}%${charging ? ' · заряджається' : ''}`});
     }
+    // Indoors, by the Dyson: the air's grade and the humidity, "сухо" below the Guard's 35 %.
+    if (humidifier?.available) {
+      const level = airLevel(humidifier);
+      const parts = [level === null ? 'Повітря' : `Повітря ${level.word}`];
+      if (typeof humidifier.humidity === 'number') {
+        parts.push(`${humidifier.humidity}%${humidifier.humidity < 35 ? ' сухо' : ''}`);
+      }
+      list.push({
+        kind: level === AIR_LEVELS[AIR_LEVELS.length - 1] ? 'alert' : undefined,
+        icon: 'air', dot: level?.rgb, text: parts.join(' · '),
+      });
+    }
     if (weather?.temperature !== null && weather?.temperature !== undefined) {
       const t = Math.round(weather.temperature);
       list.push({icon: 'cloud', text: `${t > 0 ? '+' : ''}${t}° ${sky(weather.code)}`});
@@ -87,6 +101,7 @@
     drop: 'M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z',
     door: 'M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M4 21h16M14 12h.01',
     wifi: 'M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01',
+    air: 'M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h8',
   };
 </script>
 
@@ -99,6 +114,7 @@
       <span v-for="chip in chips" :key="chip.text" class="chip"
             :class="{'chip-alert': chip.kind === 'alert', 'chip-muted': chip.kind === 'muted'}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path :d="ICONS[chip.icon]"/></svg>
+        <span v-if="chip.dot && chip.kind !== 'alert'" class="h-2 w-2 flex-none rounded-full" :style="{background: `rgb(${chip.dot})`}"></span>
         {{ chip.text }}
       </span>
     </div>
