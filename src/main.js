@@ -10,6 +10,7 @@ import HVAC from "./components/cooper_hunter/hvac.vue";
 import Thermostat from "./components/terneo/thermostat.vue";
 import LGTV from "./components/lg/tv.vue";
 import Guard from "./components/guard/guard.vue";
+import Battery from "./components/marstek/venus.vue";
 
 const app = createApp(App);
 
@@ -22,6 +23,7 @@ app
     .component('terneo', Thermostat)
     .component('lgtv', LGTV)
     .component('guard', Guard)
+    .component('marstek.venus_e', Battery)
 ;
 
 app.mount('#app')
