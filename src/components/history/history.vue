@@ -302,7 +302,7 @@
 </script>
 
 <template>
-  <Device accent="sky" @open="extended = true" @close="extended = false">
+  <Device accent="slate" @open="extended = true" @close="extended = false">
     <template #icon>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="8" y="10" width="48" height="44" rx="6" fill="#3762cc"/><rect x="12" y="14" width="40" height="36" rx="3" fill="#eaf0f3"/><path d="M15 42 25 31l7 6 12-14 5 4" fill="none" stroke="#4671c6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="44" cy="23" r="3.5" fill="#6bdddd"/></svg>
     </template>

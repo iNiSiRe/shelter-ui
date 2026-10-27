@@ -13,6 +13,7 @@ import LGTV from "./components/lg/tv.vue";
 import Guard from "./components/guard/guard.vue";
 import Battery from "./components/marstek/venus.vue";
 import History from "./components/history/history.vue";
+import Forecast from "./components/weather/forecast.vue";
 
 const app = createApp(App);
 
@@ -28,6 +29,7 @@ app
     .component('guard', Guard)
     .component('marstek.venus_e', Battery)
     .component('history', History)
+    .component('open_meteo', Forecast)
 ;
 
 app.mount('#app')
