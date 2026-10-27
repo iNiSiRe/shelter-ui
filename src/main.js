@@ -9,6 +9,7 @@ import Motion from "./components/xiaomi/motion.vue";
 import HVAC from "./components/cooper_hunter/hvac.vue";
 import Thermostat from "./components/terneo/thermostat.vue";
 import LGTV from "./components/lg/tv.vue";
+import Guard from "./components/guard/guard.vue";
 
 const app = createApp(App);
 
@@ -20,6 +21,7 @@ app
     .component('cooper_hunter.nordic_evo_2', HVAC)
     .component('terneo', Thermostat)
     .component('lgtv', LGTV)
+    .component('guard', Guard)
 ;
 
 app.mount('#app')
