@@ -178,7 +178,7 @@
     background: currentColor;
   }
 
-  /* ---------- Sheet: a bottom sheet on phones, a floating card on wider screens ---------- */
+  /* ---------- Sheet: the whole screen on phones, a floating card on wider screens ---------- */
   .sheet-backdrop {
     @apply fixed inset-0 z-40;
     background: rgba(0, 0, 0, 0.45);
@@ -187,8 +187,9 @@
   }
   .sheet {
     --accent-rgb: 148 163 184;
-    @apply fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[86vh] sm:w-[540px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[28px];
-    background: rgba(24, 24, 30, 0.86);
+    @apply fixed inset-0 z-50 flex flex-col overflow-hidden sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-h-[94vh] sm:w-[540px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[28px];
+    padding-top: env(safe-area-inset-top);
+    background: rgba(24, 24, 30, 0.9);
     -webkit-backdrop-filter: blur(40px) saturate(160%);
     backdrop-filter: blur(40px) saturate(160%);
     box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.08), 0 30px 80px -20px rgba(0, 0, 0, 0.8);
@@ -196,9 +197,30 @@
   .sheet-scroll {
     @apply flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))];
   }
-  .sheet-handle {
-    @apply mx-auto mb-1 mt-2 h-1.5 w-10 rounded-full sm:hidden;
-    background: rgba(255, 255, 255, 0.22);
+  /* A thin dark scrollbar that sits inside the rounded card, as macOS draws its overlay one.
+     Chrome drops the ::-webkit-scrollbar styles (and draws arrows) once scrollbar-width or
+     scrollbar-color is set, so those two are for Firefox alone. */
+  @supports not selector(::-webkit-scrollbar) {
+    .sheet-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+  }
+  .sheet-scroll::-webkit-scrollbar {
+    width: 12px;
+  }
+  .sheet-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 14px 0;
+  }
+  .sheet-scroll::-webkit-scrollbar-thumb {
+    border: 4px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+  .sheet-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.32);
   }
   .sheet-close {
     @apply grid h-8 w-8 flex-none place-items-center rounded-full transition active:scale-90;

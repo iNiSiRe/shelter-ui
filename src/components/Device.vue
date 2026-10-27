@@ -74,9 +74,7 @@
       </Transition>
       <Transition name="sheet">
         <div v-show="extended" class="sheet" role="dialog" aria-modal="true" :style="{'--accent-rgb': accentRgb}">
-          <div class="sheet-handle"></div>
-
-          <div v-if="!bareExtended" class="flex items-center gap-3 px-4 pb-3 pt-2 sm:pt-4">
+          <div v-if="!bareExtended" class="flex items-center gap-3 px-4 pb-3 pt-4">
             <span class="sheet-icon"><slot name="icon"></slot></span>
             <div class="min-w-0 flex-1">
               <p class="truncate text-[17px] font-semibold leading-tight"><slot name="title"></slot></p>
