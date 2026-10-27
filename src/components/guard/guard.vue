@@ -130,6 +130,9 @@
           <Item label="Сирена при протіканні">
             <span>{{ MODES[p.automations?.leakSiren] ?? '—' }}</span>
           </Item>
+          <Item label="Тепло до приходу">
+            <span>{{ MODES[p.automations?.precondition] ?? '—' }}</span>
+          </Item>
         </List>
       </Section>
     </template>
