@@ -37,12 +37,14 @@
 
   const AIR = [['room_kitchen', 'Кухня', COLORS.kitchen], ['room_bedroom', 'Спальня', COLORS.bedroom], ['outdoor', 'Надворі', COLORS.outdoor]];
   const FLOORS = [['kitchen', 'Кухня', COLORS.kitchen], ['bathroom', 'Ванна', COLORS.bathroom], ['balcony', 'Балкон', COLORS.balcony]];
+  // The Dyson's sensor, in the bedroom.
+  const HUMIDITY = [['humidity', 'Спальня', COLORS.bedroom]];
 
   const state = reactive({hours: 24, samples: [], power: {}, loading: false, error: null, table: false});
   const extended = ref(false);
 
   const charts = [];
-  const airEl = ref(null), floorEl = ref(null), chargeEl = ref(null), loadEl = ref(null), lanesEl = ref(null);
+  const airEl = ref(null), humidityEl = ref(null), floorEl = ref(null), chargeEl = ref(null), loadEl = ref(null), lanesEl = ref(null);
   const lanesWidth = ref(320);
   const hover = ref(null);
 
@@ -118,6 +120,8 @@
   });
 
   const latest = computed(() => state.samples[state.samples.length - 1] ?? null);
+  // Older samples predate the Dyson: no empty chart and column for them.
+  const hasHumidity = computed(() => state.samples.some(sample => typeof sample.humidity === 'number'));
 
   const format = (value, digits = 1) => value === null || value === undefined ? '—' : value.toFixed(digits);
   const pad = (value) => String(value).padStart(2, '0');
@@ -175,6 +179,7 @@
 
     nextTick(() => {
       if (airEl.value) charts.push(lineChart(airEl.value, AIR, '°'));
+      if (humidityEl.value) charts.push(lineChart(humidityEl.value, HUMIDITY, '%'));
       if (floorEl.value) charts.push(lineChart(floorEl.value, FLOORS.map(([room, label, color]) => [`floor_${room}`, label, color]), '°'));
       if (chargeEl.value) charts.push(lineChart(chargeEl.value, [['soc', 'Заряд', COLORS.charge]], '%', [0, 100]));
       if (loadEl.value) charts.push(lineChart(loadEl.value, [['load', 'Розетка', COLORS.load]], ' Вт'));
@@ -294,6 +299,7 @@
       outdoor: avg(rows, 'outdoor'),
       kitchen: avg(rows, 'room_kitchen'),
       bedroom: avg(rows, 'room_bedroom'),
+      humidity: avg(rows, 'humidity'),
       floors: FLOORS.map(([room]) => avg(rows, `floor_${room}`)),
       heated: rows.reduce((total, row) => total + FLOORS.reduce((sum, [room]) => sum + (row.sample[`heat_${room}`] ?? 0) * row.span, 0), 0) / 60_000,
       soc: avg(rows, 'soc'),
@@ -341,6 +347,10 @@
       <div v-else :style="{opacity: state.loading ? 0.6 : 1}" class="history flex flex-col gap-5">
         <Section name="Температура повітря">
           <div ref="airEl" class="chart"></div>
+        </Section>
+
+        <Section v-if="hasHumidity" name="Вологість повітря">
+          <div ref="humidityEl" class="chart"></div>
         </Section>
 
         <Section name="Температура підлог">
@@ -409,6 +419,7 @@
                   <th class="px-2 py-2 text-right font-medium">Надворі</th>
                   <th class="px-2 py-2 text-right font-medium">Кухня</th>
                   <th class="px-2 py-2 text-right font-medium">Спальня</th>
+                  <th v-if="hasHumidity" class="px-2 py-2 text-right font-medium">Вологість</th>
                   <th v-for="[room, label] in FLOORS" :key="room" class="px-2 py-2 text-right font-medium">Підлога: {{ label.toLowerCase() }}</th>
                   <th class="px-2 py-2 text-right font-medium">Гріли, хв</th>
                   <th class="px-2 py-2 text-right font-medium">Заряд</th>
@@ -420,6 +431,7 @@
                   <td class="px-2 py-1.5 text-right">{{ format(row.outdoor) }}°</td>
                   <td class="px-2 py-1.5 text-right">{{ format(row.kitchen) }}°</td>
                   <td class="px-2 py-1.5 text-right">{{ format(row.bedroom) }}°</td>
+                  <td v-if="hasHumidity" class="px-2 py-1.5 text-right">{{ format(row.humidity, 0) }}%</td>
                   <td v-for="(value, i) in row.floors" :key="i" class="px-2 py-1.5 text-right">{{ format(value) }}°</td>
                   <td class="px-2 py-1.5 text-right">{{ Math.round(row.heated) }}</td>
                   <td class="px-2 py-1.5 text-right">{{ format(row.soc, 0) }}%</td>

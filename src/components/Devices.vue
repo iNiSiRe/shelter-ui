@@ -46,18 +46,27 @@
     return Number.isFinite(parsed) ? parsed : null;
   };
 
-  // A line under the room's name: the air temperature (an AC or a climate sensor reports it)
-  // and the floor's, when a thermostat sits there.
+  // A line under the room's name: the air temperature (an AC, a climate sensor or the Dyson
+  // reports it), the humidity, and the floor's temperature, when a thermostat sits there.
+  const INDOOR = ['lumi.weather.v1', 'dyson.humidify_cool'];
+
   const roomMeta = (room) => {
     const parts = [];
     const props = room.items.map(item => item.device.properties ?? {});
 
-    // Indoors only: an AC's sensor or an Aqara climate sensor, never the forecast outside.
+    // Indoors only: an AC's sensor, an Aqara climate sensor or the Dyson, never the forecast outside.
+    const indoor = (item) => INDOOR.includes(item.device.model);
     const air = room.items.map(item => number(item.device.properties?.indoorTemperature)
-        ?? (item.device.model === 'lumi.weather.v1' ? number(item.device.properties?.temperature) : null))
+        ?? (indoor(item) ? number(item.device.properties?.temperature) : null))
       .find(value => value !== null);
     if (air !== undefined) {
       parts.push(`${Math.round(air * 10) / 10}°`);
+    }
+
+    const humidity = room.items.map(item => indoor(item) ? number(item.device.properties?.humidity) : null)
+      .find(value => value !== null);
+    if (humidity !== undefined) {
+      parts.push(`${Math.round(humidity)}%`);
     }
 
     const floor = props.map(p => p.floorTemp !== undefined ? number(p.floorTemp) : null).find(value => value !== null);

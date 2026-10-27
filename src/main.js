@@ -14,6 +14,7 @@ import Guard from "./components/guard/guard.vue";
 import Battery from "./components/marstek/venus.vue";
 import History from "./components/history/history.vue";
 import Forecast from "./components/weather/forecast.vue";
+import DysonHumidifyCool from "./components/dyson/humidify.vue";
 
 const app = createApp(App);
 
@@ -30,6 +31,7 @@ app
     .component('marstek.venus_e', Battery)
     .component('history', History)
     .component('open_meteo', Forecast)
+    .component('dyson.humidify_cool', DysonHumidifyCool)
 ;
 
 app.mount('#app')
