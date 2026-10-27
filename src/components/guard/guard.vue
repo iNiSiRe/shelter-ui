@@ -129,6 +129,9 @@
           <Item label="Leak & battery alerts">
             <span>{{ MODES[p.automations?.sensors] ?? '—' }}</span>
           </Item>
+          <Item label="Siren on a leak">
+            <span>{{ MODES[p.automations?.leakSiren] ?? '—' }}</span>
+          </Item>
         </List>
       </Section>
     </template>
