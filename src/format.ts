@@ -22,3 +22,14 @@ export function ago(timestamp: number, now: number = Date.now()): string
     const diff = Math.max(0, now - timestamp);
     return diff < 45_000 ? 'щойно' : `${prettifyMilliseconds(diff)} тому`;
 }
+
+// "-63 дБм · добрий": the Wi-Fi signal with what it means, the same scale on every card.
+export function wifiSignal(rssi: number | null | undefined): string
+{
+    if (rssi === null || rssi === undefined || !Number.isFinite(rssi)) {
+        return '—';
+    }
+
+    const quality = rssi >= -60 ? 'відмінний' : rssi >= -70 ? 'добрий' : rssi >= -80 ? 'середній' : 'слабкий';
+    return `${rssi} дБм · ${quality}`;
+}

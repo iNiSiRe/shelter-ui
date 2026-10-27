@@ -9,6 +9,7 @@
   import CounterInput from "@/components/controls/CounterInput.vue";
   import TemperatureHero from "@/components/controls/TemperatureHero.vue";
   import {registry as Registry} from "@/registry";
+  import {wifiSignal} from "@/format";
 
   const props = defineProps({
     item: Object,
@@ -362,7 +363,7 @@
             <span class="pill pill-accent"><span class="pill-dot"></span>Працює</span>
           </Item>
           <Item label="Wi-Fi">
-            <span>{{ state.wifi }} dBm</span>
+            <span>{{ wifiSignal(state.wifi) }}</span>
           </Item>
           <Item v-if="state.blocking !== 'none'" label="Блокування">
             <span>{{ BLOCKING_LABELS[state.blocking] ?? state.blocking }}</span>

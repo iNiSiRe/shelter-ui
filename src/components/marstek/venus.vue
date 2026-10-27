@@ -5,6 +5,7 @@
   import Item from "../properties/Item.vue";
   import Section from "../properties/Section.vue";
   import LastUpdate from "../properties/LastUpdate.vue";
+  import {wifiSignal} from "../../format";
 
   const props = defineProps({
     item: Object,
@@ -52,14 +53,7 @@
 
   const level = computed(() => soc.value >= 50 ? '163 230 53' : soc.value >= 20 ? '245 158 11' : '251 113 133');
 
-  const signal = computed(() => {
-    const rssi = p.value.wifiRssi;
-    if (rssi === null || rssi === undefined) {
-      return '—';
-    }
-    const quality = rssi >= -60 ? 'відмінний' : rssi >= -70 ? 'добрий' : rssi >= -80 ? 'середній' : 'слабкий';
-    return `${rssi} дБм · ${quality}`;
-  });
+  const signal = computed(() => wifiSignal(p.value.wifiRssi));
 </script>
 
 <template>
