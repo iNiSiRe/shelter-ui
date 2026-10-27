@@ -52,7 +52,9 @@
     const parts = [];
     const props = room.items.map(item => item.device.properties ?? {});
 
-    const air = props.map(p => number(p.indoorTemperature) ?? (p.humidity !== undefined ? number(p.temperature) : null))
+    // Indoors only: an AC's sensor or an Aqara climate sensor, never the forecast outside.
+    const air = room.items.map(item => number(item.device.properties?.indoorTemperature)
+        ?? (item.device.model === 'lumi.weather.v1' ? number(item.device.properties?.temperature) : null))
       .find(value => value !== null);
     if (air !== undefined) {
       parts.push(`${Math.round(air * 10) / 10}°`);
