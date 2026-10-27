@@ -20,7 +20,7 @@ export class Bus
     private waitingResult: Map<number, (value: Result) => void> = new Map();
 
     constructor(
-        public readonly wsUrl: string = import.meta.env.VITE_WS_URL,
+        public readonly wsUrl: string = import.meta.env.VITE_WS_URL || `ws://${location.hostname}:8888`,
     ) {
         this.events = new EventTarget();
         this.connect();

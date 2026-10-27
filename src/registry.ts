@@ -33,7 +33,9 @@ export class Registry extends EventTarget
     private readonly serverEvents: EventSource;
 
     constructor(
-        public readonly baseUrl: string = import.meta.env.VITE_API_URL,
+        // The Pi the page came from, unless the build names another: the same build then works
+        // at home (192.168.0.197) and over Tailscale (shelter-pi).
+        public readonly baseUrl: string = import.meta.env.VITE_API_URL || `${location.protocol}//${location.hostname}:8080`,
     ) {
         super();
         this.serverEvents = new EventSource(`${this.baseUrl}/sse/v1/devices`);

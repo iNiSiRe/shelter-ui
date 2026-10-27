@@ -9,7 +9,7 @@
     device: Object
   });
 
-  const POINTER_URL = 'ws://192.168.0.197:9090/pointer';
+  const POINTER_URL = `ws://${location.hostname}:9090/pointer`;
   const RECONNECT_INTERVAL = 15000;
 
   // --- touchpad state ---
