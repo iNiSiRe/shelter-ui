@@ -35,6 +35,7 @@
       </span>
       <span v-else class="pill pill-muted">Presence off</span>
       <span v-if="phones.length">{{ onWifi }}/{{ phones.length }} phones on Wi-Fi</span>
+      <span v-if="p.mains?.state === 'off'" class="text-amber-300">no mains power</span>
     </template>
 
     <template #action>
@@ -76,6 +77,22 @@
         </List>
       </Section>
 
+      <Section name="Power" v-if="p.mains || p.battery">
+        <List>
+          <Item label="Mains" v-if="p.mains">
+            <span class="pill" :class="p.mains.state === 'on' ? 'pill-accent' : 'pill-muted'">
+              <span class="pill-dot"></span>{{ p.mains.state === 'on' ? 'on' : 'off' }}
+            </span>
+          </Item>
+          <Item label="Since" v-if="p.mains">
+            <LastUpdate :timestamp="p.mains.since"></LastUpdate>
+          </Item>
+          <Item label="Battery" v-if="p.battery">
+            <span>{{ p.battery.soc ?? '—' }}%<template v-if="p.battery.load !== null"> · {{ p.battery.load }} W</template></span>
+          </Item>
+        </List>
+      </Section>
+
       <Section name="Sensors">
         <List>
           <Item label="Last motion">
@@ -105,6 +122,12 @@
           </Item>
           <Item label="Last run" v-if="p.nightDone">
             <span>{{ p.nightDone }}</span>
+          </Item>
+          <Item label="Power journal">
+            <span>{{ MODES[p.automations?.power] ?? '—' }}</span>
+          </Item>
+          <Item label="Sensor battery alerts">
+            <span>{{ MODES[p.automations?.sensors] ?? '—' }}</span>
           </Item>
         </List>
       </Section>
