@@ -45,10 +45,8 @@
 
     <template #status>
       <template v-if="device.properties.motion">
-        <span class="pill" :class="moving ? 'pill-accent' : 'pill-muted'">
-          <span class="pill-dot"></span>{{ moving ? 'Motion' : 'Clear' }}
-        </span>
-        <span><LastUpdate :timestamp="device.properties.motion.at"></LastUpdate></span>
+        <span>{{ moving ? 'Рух' : 'Тихо' }}</span>
+        <span class="opacity-70">· <LastUpdate :timestamp="device.properties.motion.at"></LastUpdate></span>
       </template>
     </template>
 
@@ -56,9 +54,9 @@
     </template>
 
     <template #extended>
-      <Section name="Motion" v-if="device.properties.motion">
+      <Section v-if="device.properties.motion">
         <List>
-          <Item label="Last event at">
+          <Item label="Останній рух">
             <LastUpdate :timestamp="device.properties.motion.at"></LastUpdate>
           </Item>
         </List>

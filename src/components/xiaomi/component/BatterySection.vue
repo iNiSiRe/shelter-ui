@@ -12,12 +12,12 @@ defineProps({
 </script>
 
 <template>
-  <Section class="mt-4" name="Battery">
+  <Section name="Батарейка">
     <List>
-      <Item label="Voltage">
-        <span>{{ battery.voltage }}V</span>
+      <Item label="Напруга">
+        <span>{{ battery.voltage }} В</span>
       </item>
-      <Item label="Last update">
+      <Item label="Оновлено">
         <LastUpdate :timestamp="battery.updatedAt"></LastUpdate>
       </item>
     </List>

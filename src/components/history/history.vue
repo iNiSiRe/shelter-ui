@@ -15,10 +15,10 @@
   const REFRESH = 5 * 60_000;
 
   const RANGES = [
-    {hours: 24, label: '24 h'},
-    {hours: 72, label: '3 days'},
-    {hours: 168, label: '7 days'},
-    {hours: 720, label: '30 days'},
+    {hours: 24, label: '24 год'},
+    {hours: 72, label: '3 дні'},
+    {hours: 168, label: '7 днів'},
+    {hours: 720, label: '30 днів'},
   ];
 
   // One colour per room, whichever chart it shows up in. Validated as sets (dark surface
@@ -35,8 +35,8 @@
   const INK = {secondary: '#c3c2b7', muted: '#898781', grid: '#2c2c2a', axis: '#383835'};
   const MAINS_OFF = '#ec835a';    // status "serious", always with its label
 
-  const AIR = [['room_kitchen', 'Kitchen', COLORS.kitchen], ['room_bedroom', 'Bedroom', COLORS.bedroom], ['outdoor', 'Outside', COLORS.outdoor]];
-  const FLOORS = [['kitchen', 'Kitchen', COLORS.kitchen], ['bathroom', 'Bathroom', COLORS.bathroom], ['balcony', 'Balcony', COLORS.balcony]];
+  const AIR = [['room_kitchen', 'Кухня', COLORS.kitchen], ['room_bedroom', 'Спальня', COLORS.bedroom], ['outdoor', 'Надворі', COLORS.outdoor]];
+  const FLOORS = [['kitchen', 'Кухня', COLORS.kitchen], ['bathroom', 'Ванна', COLORS.bathroom], ['balcony', 'Балкон', COLORS.balcony]];
 
   const state = reactive({hours: 24, samples: [], power: {}, loading: false, error: null, table: false});
   const extended = ref(false);
@@ -55,7 +55,7 @@
       state.power = body.power ?? {};
       state.error = null;
     } catch (error) {
-      state.error = 'The Guard does not answer';
+      state.error = 'Guard не відповідає';
     } finally {
       state.loading = false;
     }
@@ -122,7 +122,7 @@
   const format = (value, digits = 1) => value === null || value === undefined ? '—' : value.toFixed(digits);
   const pad = (value) => String(value).padStart(2, '0');
   const clock = (time) => `${pad(new Date(time).getHours())}:${pad(new Date(time).getMinutes())}`;
-  const dayClock = (time) => `${new Date(time).toLocaleDateString([], {weekday: 'short'})} ${clock(time)}`;
+  const dayClock = (time) => `${new Date(time).toLocaleDateString('uk-UA', {weekday: 'short'})} ${clock(time)}`;
   const date = (time) => `${pad(new Date(time).getDate())}.${pad(new Date(time).getMonth() + 1)}`;
 
   // 24-hour time ticks, or dates once the range spans days.
@@ -146,13 +146,13 @@
       height: 170,
       scales: {x: {time: true}, y: range ? {range} : {}},
       series: [
-        {value: (u, v) => v === null ? '—' : dayClock(v * 1000)},
+        {label: 'Час', value: (u, v) => v === null ? '—' : dayClock(v * 1000)},
         ...defs.map(([key, label, color]) => ({
           label,
           stroke: color,
           width: 2,
           points: {show: false},
-          value: (u, v) => v === null ? '—' : `${v.toFixed(unit === '%' || unit === ' W' ? 0 : 1)}${unit}`,
+          value: (u, v) => v === null ? '—' : `${v.toFixed(unit === '%' || unit === ' Вт' ? 0 : 1)}${unit}`,
         })),
       ],
       axes: [
@@ -176,8 +176,8 @@
     nextTick(() => {
       if (airEl.value) charts.push(lineChart(airEl.value, AIR, '°'));
       if (floorEl.value) charts.push(lineChart(floorEl.value, FLOORS.map(([room, label, color]) => [`floor_${room}`, label, color]), '°'));
-      if (chargeEl.value) charts.push(lineChart(chargeEl.value, [['soc', 'Charge', COLORS.charge]], '%', [0, 100]));
-      if (loadEl.value) charts.push(lineChart(loadEl.value, [['load', 'Backup socket', COLORS.load]], ' W'));
+      if (chargeEl.value) charts.push(lineChart(chargeEl.value, [['soc', 'Заряд', COLORS.charge]], '%', [0, 100]));
+      if (loadEl.value) charts.push(lineChart(loadEl.value, [['load', 'Розетка', COLORS.load]], ' Вт'));
       if (lanesEl.value) lanesWidth.value = Math.max(260, lanesEl.value.clientWidth);
     });
   }
@@ -200,9 +200,9 @@
   const LANE = 22, GAP = 6, LABEL = 76;
   const laneRows = [
     ...FLOORS.map(([room, label, color]) => ({label, kind: 'heat', key: `heat_${room}`, color})),
-    {label: 'At home', kind: 'state', key: 'home', color: INK.secondary},
-    {label: 'Mains', kind: 'mains', key: 'mains', color: MAINS_OFF},
-    {label: 'Motion', kind: 'ticks', key: 'motion', color: INK.muted},
+    {label: 'Вдома', kind: 'state', key: 'home', color: INK.secondary},
+    {label: 'Світло', kind: 'mains', key: 'mains', color: MAINS_OFF},
+    {label: 'Рух', kind: 'ticks', key: 'motion', color: INK.muted},
   ];
 
   const range = computed(() => {
@@ -268,9 +268,9 @@
     if (!hover.value) return null;
     const s = hover.value.sample;
     const heat = FLOORS.map(([room, label]) => `${label} ${Math.round((s[`heat_${room}`] ?? 0) * 100)}%`).join(' · ');
-    const home = s.home === null || s.home === undefined ? '' : s.home >= 0.5 ? ' · someone home' : ' · nobody home';
-    const mains = s.mains === null || s.mains === undefined ? '' : s.mains >= 0.5 ? '' : ' · no mains';
-    return `${dayClock(s.t)} — heating ${heat}${home}${mains}`;
+    const home = s.home === null || s.home === undefined ? '' : s.home >= 0.5 ? ' · хтось удома' : ' · нікого';
+    const mains = s.mains === null || s.mains === undefined ? '' : s.mains >= 0.5 ? '' : ' · немає світла';
+    return `${dayClock(s.t)} — гріли: ${heat}${home}${mains}`;
   });
 
   // The table view: one row an hour (or a day past three days), the values the charts show.
@@ -313,44 +313,44 @@
 
     <template #status>
       <template v-if="latest">
-        <span v-if="latest.outdoor !== null && latest.outdoor !== undefined">Outside {{ format(latest.outdoor) }}°</span>
-        <span>floors heated {{ format(today, 1) }} h today</span>
+        <span v-if="latest.outdoor !== null && latest.outdoor !== undefined">Надворі {{ format(latest.outdoor) }}°</span>
+        <span class="opacity-70">· підлоги сьогодні {{ format(today, 1) }} год</span>
       </template>
-      <span v-else-if="state.error" class="pill pill-muted">{{ state.error }}</span>
-      <span v-else class="pill pill-muted">collecting…</span>
+      <span v-else-if="state.error">{{ state.error }}</span>
+      <span v-else>Збираю дані…</span>
     </template>
 
     <template #action>
     </template>
 
     <template #extended>
-      <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Range">
+      <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Період">
         <button v-for="range in RANGES" :key="range.hours" type="button" class="pill"
                 :class="state.hours === range.hours ? 'pill-accent' : 'pill-muted'" @click="pick(range.hours)">
           {{ range.label }}
         </button>
         <button type="button" class="pill ml-auto" :class="state.table ? 'pill-accent' : 'pill-muted'" @click="state.table = !state.table">
-          Table
+          Таблиця
         </button>
       </div>
 
       <p v-if="state.samples.length === 0" class="text-sm text-zinc-400">
-        {{ state.error ?? 'Collecting the first samples — one every 5 minutes.' }}
+        {{ state.error ?? 'Збираю перші дані — запис кожні 5 хвилин.' }}
       </p>
 
       <div v-else :style="{opacity: state.loading ? 0.6 : 1}" class="history flex flex-col gap-5">
-        <Section name="Air temperature">
+        <Section name="Температура повітря">
           <div ref="airEl" class="chart"></div>
         </Section>
 
-        <Section name="Floor temperature">
+        <Section name="Температура підлог">
           <div ref="floorEl" class="chart"></div>
         </Section>
 
-        <Section name="Floor heating">
+        <Section name="Коли гріли підлоги">
           <div ref="lanesEl" class="relative">
             <svg :width="lanesWidth" :height="lanesHeight" class="block" role="img"
-                 aria-label="When each floor heated, who was home and whether the mains were up"
+                 aria-label="Коли гріла кожна підлога, чи був хтось удома і чи було світло"
                  @pointermove="onLanesMove" @pointerleave="hover = null">
               <rect v-for="(band, i) in nightBands" :key="'n' + i" :x="band.x" y="0" :width="band.w"
                     :height="lanesHeight - 16" fill="rgba(255,255,255,0.05)"/>
@@ -372,9 +372,9 @@
               <template v-if="hoverText">{{ hoverText }}</template>
               <template v-else>
                 <span class="inline-block h-2.5 w-3 rounded-sm align-middle" style="background: rgba(255,255,255,0.12)"></span>
-                night tariff 23:00–07:00 ·
+                нічний тариф 23:00–07:00 ·
                 <span class="inline-block h-2.5 w-3 rounded-sm align-middle" :style="{background: MAINS_OFF}"></span>
-                no mains
+                немає світла
               </template>
             </p>
           </div>
@@ -384,34 +384,34 @@
               <span class="field-label flex items-center gap-2">
                 <span class="inline-block h-0.5 w-3 rounded" :style="{background: floor.color}"></span>{{ floor.label }}
               </span>
-              <span class="field-value">
-                {{ format(floor.hours, 1) }} h<template v-if="floor.kwh !== null"> · {{ format(floor.kwh, 1) }} kWh</template>
-                <span v-if="floor.nightShare !== null" class="font-normal text-zinc-400"> · {{ Math.round(floor.nightShare * 100) }}% at night</span>
+              <span class="field-value flex flex-col items-end leading-tight">
+                <span class="whitespace-nowrap text-[color:var(--ink)]">{{ format(floor.hours, 1) }} год<template v-if="floor.kwh !== null"> · {{ format(floor.kwh, 1) }} кВт·год</template></span>
+                <span v-if="floor.nightShare !== null" class="text-[13px] text-[color:var(--ink-3)]">{{ Math.round(floor.nightShare * 100) }}% вночі</span>
               </span>
             </li>
           </ul>
         </Section>
 
-        <Section name="Battery charge">
+        <Section name="Заряд батареї">
           <div ref="chargeEl" class="chart"></div>
         </Section>
 
-        <Section name="Backup socket load">
+        <Section name="Навантаження резервної розетки">
           <div ref="loadEl" class="chart"></div>
         </Section>
 
-        <Section v-if="state.table" name="Table">
+        <Section v-if="state.table" name="Таблиця">
           <div class="overflow-x-auto rounded-2xl border border-white/10">
             <table class="w-full text-xs tabular-nums">
               <thead class="text-zinc-400">
                 <tr>
-                  <th class="px-2 py-2 text-left font-medium">Time</th>
-                  <th class="px-2 py-2 text-right font-medium">Outside</th>
-                  <th class="px-2 py-2 text-right font-medium">Kitchen</th>
-                  <th class="px-2 py-2 text-right font-medium">Bedroom</th>
-                  <th v-for="[room, label] in FLOORS" :key="room" class="px-2 py-2 text-right font-medium">{{ label }} floor</th>
-                  <th class="px-2 py-2 text-right font-medium">Heated, min</th>
-                  <th class="px-2 py-2 text-right font-medium">Charge</th>
+                  <th class="px-2 py-2 text-left font-medium">Час</th>
+                  <th class="px-2 py-2 text-right font-medium">Надворі</th>
+                  <th class="px-2 py-2 text-right font-medium">Кухня</th>
+                  <th class="px-2 py-2 text-right font-medium">Спальня</th>
+                  <th v-for="[room, label] in FLOORS" :key="room" class="px-2 py-2 text-right font-medium">Підлога: {{ label.toLowerCase() }}</th>
+                  <th class="px-2 py-2 text-right font-medium">Гріли, хв</th>
+                  <th class="px-2 py-2 text-right font-medium">Заряд</th>
                 </tr>
               </thead>
               <tbody class="text-zinc-200">

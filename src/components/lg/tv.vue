@@ -272,11 +272,11 @@
     <template #status>
       <span v-if="device.properties.enabled" class="inline-flex items-center gap-1.5">
         <img v-if="foregroundAppInfo" :src="foregroundAppInfo.icon" class="h-4 w-4 rounded" alt="">
-        <span class="truncate">{{ foregroundAppInfo?.title || 'Home' }}</span>
-        <span class="text-gray-300">•</span>
-        <span class="whitespace-nowrap">Vol {{ device.properties.volume }}</span>
+        <span class="truncate">{{ foregroundAppInfo?.title || 'Головна' }}</span>
+        <span class="opacity-50">·</span>
+        <span class="whitespace-nowrap">гучн. {{ device.properties.volume }}</span>
       </span>
-      <span v-else class="text-gray-400">Standby</span>
+      <span v-else>Вимкнено</span>
     </template>
 
     <template #action>
@@ -286,7 +286,7 @@
     </template>
 
     <template #extended>
-      <div class="remote -m-4 flex min-h-[100dvh] flex-col gap-4 p-5 text-zinc-200 sm:min-h-0">
+      <div class="remote flex min-h-[86vh] flex-col gap-4 p-5 pt-6 text-zinc-200 sm:min-h-0">
 
         <!-- Header -->
         <div class="pr-10">
@@ -300,13 +300,13 @@
           <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-400">
             <span class="inline-flex items-center gap-1.5">
               <img v-if="foregroundAppInfo" :src="foregroundAppInfo.icon" class="h-4 w-4 rounded" alt="">
-              {{ foregroundAppInfo?.title || (device.properties.enabled ? 'Home' : 'Standby') }}
+              {{ foregroundAppInfo?.title || (device.properties.enabled ? 'Головна' : 'Вимкнено') }}
             </span>
             <span class="text-zinc-700">•</span>
             <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5"
                   :class="connected ? 'bg-emerald-500/10 text-emerald-300' : connecting ? 'bg-amber-500/10 text-amber-300' : 'bg-zinc-500/10 text-zinc-400'">
               <span class="h-1.5 w-1.5 rounded-full" :class="connected ? 'bg-emerald-400' : connecting ? 'animate-pulse bg-amber-400' : 'bg-zinc-500'"></span>
-              {{ connected ? 'Connected' : connecting ? 'Connecting…' : 'Offline' }}
+              {{ connected ? 'Пульт підключено' : connecting ? 'Підключаюсь…' : 'Пульт не підключено' }}
             </span>
           </div>
         </div>
@@ -320,28 +320,28 @@
                     : 'border-white/10 bg-white/5 text-zinc-300 group-hover:bg-white/10'">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M12 3v9"/><path d="M6.6 6.6a8 8 0 1 0 10.8 0"/></svg>
             </span>
-            <span class="text-[10px] font-medium text-zinc-500">Power</span>
+            <span class="text-[10px] font-medium text-zinc-500">Живлення</span>
           </button>
 
           <button type="button" @click="button('HOME')" class="group flex flex-col items-center gap-1.5">
             <span class="keycap">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.2V20h13v-9.8"/></svg>
             </span>
-            <span class="text-[10px] font-medium text-zinc-500">Home</span>
+            <span class="text-[10px] font-medium text-zinc-500">Додому</span>
           </button>
 
           <button type="button" @click="button('MENU')" class="group flex flex-col items-center gap-1.5">
             <span class="keycap">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </span>
-            <span class="text-[10px] font-medium text-zinc-500">Settings</span>
+            <span class="text-[10px] font-medium text-zinc-500">Меню</span>
           </button>
 
           <button type="button" @click="button('BACK')" class="group flex flex-col items-center gap-1.5">
             <span class="keycap">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
             </span>
-            <span class="text-[10px] font-medium text-zinc-500">Back</span>
+            <span class="text-[10px] font-medium text-zinc-500">Назад</span>
           </button>
         </div>
 
@@ -369,7 +369,7 @@
           <div ref="canvas" class="touchpad relative flex flex-1 select-none items-center justify-center rounded-3xl" style="touch-action: none;">
             <span class="pointer-events-none flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-600">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              Touchpad
+              Тачпад
             </span>
           </div>
         </div>
@@ -383,9 +383,9 @@
             <div class="flex items-center justify-between text-xs text-zinc-400">
               <span class="inline-flex items-center gap-1.5">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
-                Volume
+                Гучність
               </span>
-              <span class="font-semibold text-white">{{ device.properties.muted ? 'Muted' : device.properties.volume }}</span>
+              <span class="font-semibold text-white">{{ device.properties.muted ? 'Без звуку' : device.properties.volume }}</span>
             </div>
             <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
               <div class="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-300"
@@ -418,7 +418,7 @@
 
         <!-- App launcher -->
         <div v-if="launchPoints.length" class="-mx-1">
-          <div class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Apps</div>
+          <div class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Застосунки</div>
           <div class="apps-scroll flex gap-2 overflow-x-auto px-1 pb-1">
             <button type="button" v-for="lp in launchPoints" :key="lp.id"
                     @click="Registry.call(device.id, 'openApp', {value: lp.id})"

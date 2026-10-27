@@ -31,9 +31,9 @@
     const hours = p.value.capacity * Math.max(0, soc.value - RESERVE) / 100 / load;
 
     if (hours >= 48) {
-      return `≈ ${Math.round(hours / 24)} days`;
+      return `≈ ${Math.round(hours / 24)} дн`;
     }
-    return hours >= 1 ? `≈ ${Math.round(hours)} h` : `≈ ${Math.round(hours * 60)} min`;
+    return hours >= 1 ? `≈ ${Math.round(hours)} год` : `≈ ${Math.round(hours * 60)} хв`;
   });
 
   // Negative charges, as with the API's own power setpoints.
@@ -43,12 +43,12 @@
       return null;
     }
     if (power === 0) {
-      return 'idle';
+      return 'простоює';
     }
-    return power < 0 ? `charging ${-power} W` : `discharging ${power} W`;
+    return power < 0 ? `заряджається, ${-power} Вт` : `віддає, ${power} Вт`;
   });
 
-  const kwh = (wh) => wh === null || wh === undefined ? '—' : `${(wh / 1000).toFixed(wh >= 10000 ? 0 : 1)} kWh`;
+  const kwh = (wh) => wh === null || wh === undefined ? '—' : `${(wh / 1000).toFixed(wh >= 10000 ? 0 : 1)} кВт·год`;
 
   const level = computed(() => soc.value >= 50 ? '163 230 53' : soc.value >= 20 ? '245 158 11' : '251 113 133');
 
@@ -57,8 +57,8 @@
     if (rssi === null || rssi === undefined) {
       return '—';
     }
-    const quality = rssi >= -60 ? 'excellent' : rssi >= -70 ? 'good' : rssi >= -80 ? 'fair' : 'weak';
-    return `${rssi} dBm · ${quality}`;
+    const quality = rssi >= -60 ? 'відмінний' : rssi >= -70 ? 'добрий' : rssi >= -80 ? 'середній' : 'слабкий';
+    return `${rssi} дБм · ${quality}`;
   });
 </script>
 
@@ -74,69 +74,68 @@
 
     <template #status>
       <template v-if="online && soc !== null">
-        <span class="pill pill-accent"><span class="pill-dot"></span>{{ soc }}%</span>
-        <span v-if="p.offgridPower !== null">{{ p.offgridPower }} W</span>
-        <span v-if="runtime">{{ runtime }}</span>
+        <span>{{ soc }}%</span>
+        <span v-if="runtime" class="opacity-70">· {{ runtime }}</span>
       </template>
-      <span v-else class="pill pill-muted">offline</span>
+      <span v-else>Немає зв'язку</span>
     </template>
 
     <template #action>
     </template>
 
     <template #extended>
-      <div v-if="soc !== null" class="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+      <div v-if="soc !== null" class="rounded-[22px] bg-[color:var(--group)] p-4">
         <div class="flex items-end justify-between gap-3">
-          <span class="text-4xl font-semibold tracking-tight text-white">{{ soc }}<span class="text-xl text-zinc-400">%</span></span>
-          <span class="text-sm text-zinc-400">{{ kwh(stored) }} of {{ kwh(p.capacity) }}</span>
+          <span class="text-[44px] font-light leading-none tracking-tight">{{ soc }}<span class="text-2xl text-[color:var(--ink-2)]">%</span></span>
+          <span class="text-[13px] text-[color:var(--ink-2)]">{{ kwh(stored) }} з {{ kwh(p.capacity) }}</span>
         </div>
         <div class="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
           <div class="h-full rounded-full transition-all duration-500"
                :style="{width: `${Math.min(100, Math.max(0, soc))}%`, background: `rgb(${level})`}"></div>
         </div>
-        <p class="mt-2 text-xs text-zinc-500">Stops at {{ RESERVE }}% to protect the cells.</p>
+        <p class="mt-2 text-[13px] text-[color:var(--ink-3)]">Батарея зупиняється на {{ RESERVE }}%, щоб берегти елементи.</p>
       </div>
 
-      <Section name="Now">
+      <Section name="Зараз">
         <List>
-          <Item label="Backup socket">
-            <span>{{ p.offgridPower ?? '—' }} W</span>
+          <Item label="Резервна розетка">
+            <span>{{ p.offgridPower ?? '—' }} Вт</span>
           </Item>
-          <Item label="Lasts at this load">
+          <Item label="Вистачить">
             <span>{{ runtime ?? '—' }}</span>
           </Item>
-          <Item label="Grid port">
+          <Item label="Мережевий порт">
             <span>{{ flow ?? '—' }}</span>
           </Item>
-          <Item label="Mode">
+          <Item label="Режим">
             <span>{{ p.mode ?? '—' }}</span>
           </Item>
         </List>
       </Section>
 
-      <Section name="Energy, total">
+      <Section name="Енергія за весь час">
         <List>
-          <Item label="Taken from the mains">
+          <Item label="Взято з мережі">
             <span>{{ kwh(p.gridInputEnergy) }}</span>
           </Item>
-          <Item label="Given back">
+          <Item label="Віддано в мережу">
             <span>{{ kwh(p.gridOutputEnergy) }}</span>
           </Item>
         </List>
       </Section>
 
-      <Section name="Device">
+      <Section name="Пристрій">
         <List>
-          <Item label="Status">
-            <span :class="online ? '' : 'text-rose-400'">{{ online ? 'online' : 'offline' }}</span>
+          <Item label="Зв'язок">
+            <span :class="online ? '' : 'text-[#ff453a]'">{{ online ? 'на зв\'язку' : 'немає зв\'язку' }}</span>
           </Item>
-          <Item label="Model" v-if="p.hardware">
+          <Item label="Модель" v-if="p.hardware">
             <span>{{ p.hardware }}<template v-if="p.firmware"> · fw {{ p.firmware }}</template></span>
           </Item>
           <Item label="Wi-Fi">
             <span>{{ signal }}</span>
           </Item>
-          <Item label="Last update" v-if="p.updatedAt">
+          <Item label="Оновлено" v-if="p.updatedAt">
             <LastUpdate :timestamp="p.updatedAt"></LastUpdate>
           </Item>
         </List>

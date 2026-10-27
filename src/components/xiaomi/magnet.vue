@@ -23,21 +23,23 @@
     </template>
 
     <template #status>
-      <span v-if="device.properties.magnet" class="pill" :class="device.properties.magnet.open ? 'pill-accent' : 'pill-muted'">
-        <span class="pill-dot"></span>{{ device.properties.magnet.open ? 'Open' : 'Closed' }}
-      </span>
+      <template v-if="device.properties.magnet">
+        <span class="w-full">{{ device.properties.magnet.open ? 'Відчинено' : 'Зачинено' }}</span>
+        <span v-if="device.properties.magnet.updatedAt" class="w-full opacity-70"><LastUpdate :timestamp="device.properties.magnet.updatedAt"></LastUpdate></span>
+      </template>
+      <span v-else>Чекаю звіту</span>
     </template>
 
     <template #action>
     </template>
 
     <template #extended>
-      <Section name="Magnet" v-if="device.properties.magnet">
+      <Section v-if="device.properties.magnet">
         <List>
-          <Item label="Status">
-            <span>{{ device.properties.magnet.open ? 'open' : 'closed' }}</span>
+          <Item label="Стан">
+            <span>{{ device.properties.magnet.open ? 'Відчинено' : 'Зачинено' }}</span>
           </Item>
-          <Item label="Last update">
+          <Item label="Змінився">
             <LastUpdate :timestamp="device.properties.magnet.updatedAt"></LastUpdate>
           </Item>
         </List>

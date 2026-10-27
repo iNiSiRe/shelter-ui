@@ -5,14 +5,32 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --ink: #f5f5f7;
+    --ink-2: rgba(235, 235, 245, 0.62);
+    --ink-3: rgba(235, 235, 245, 0.38);
+    --glass: rgba(38, 38, 46, 0.52);
+    --hairline: rgba(255, 255, 255, 0.09);
+    --group: rgba(255, 255, 255, 0.07);
+    --on-tile: rgba(246, 246, 248, 0.94);
+    --on-ink: #1c1c1e;
+    --on-ink-2: rgba(28, 28, 30, 0.6);
+    --alert: 255 69 58;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     min-height: 100vh;
-    color: #e4e4e7;
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    /* A dim, blurred-looking wallpaper the glass tiles sit on, the way Home does it. */
     background:
-      radial-gradient(125% 85% at 50% -12%, #1b1c24 0%, rgba(0, 0, 0, 0) 55%),
-      linear-gradient(180deg, #0e0e12 0%, #0a0a0d 100%);
+      radial-gradient(60% 45% at 12% 8%, rgba(76, 81, 191, 0.42) 0%, rgba(0, 0, 0, 0) 70%),
+      radial-gradient(55% 40% at 92% 22%, rgba(20, 128, 120, 0.30) 0%, rgba(0, 0, 0, 0) 70%),
+      radial-gradient(70% 50% at 70% 100%, rgba(150, 70, 30, 0.26) 0%, rgba(0, 0, 0, 0) 70%),
+      linear-gradient(180deg, #101018 0%, #09090d 100%);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -20,67 +38,138 @@
 }
 
 @layer components {
-  /* ---------- Device card ---------- */
-  .card {
+  /* ---------- Accessory tile ---------- */
+  .tile {
     --accent-rgb: 148 163 184; /* slate default; overridden per device */
-    @apply relative flex flex-col rounded-3xl border p-4 transition-all duration-200;
-    border-color: rgba(255, 255, 255, 0.08);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)),
-      #15151b;
+    @apply relative h-full select-none rounded-[22px] transition-all duration-200;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+    backdrop-filter: blur(22px) saturate(150%);
+    box-shadow: inset 0 0 0 1px var(--hairline);
   }
-  .card:hover {
-    border-color: rgba(255, 255, 255, 0.16);
+  .tile-main {
+    @apply flex h-full min-h-[118px] cursor-pointer flex-col justify-between gap-3 p-3.5 outline-none;
   }
-  .card.is-active {
-    border-color: rgb(var(--accent-rgb) / 0.45);
-    box-shadow:
-      0 0 0 1px rgb(var(--accent-rgb) / 0.22),
-      0 12px 34px -14px rgb(var(--accent-rgb) / 0.4);
+  .tile-main:focus-visible {
+    box-shadow: 0 0 0 2px rgb(var(--accent-rgb));
+    border-radius: 22px;
   }
-
-  .card-main {
-    @apply flex cursor-pointer flex-col gap-3;
+  .tile:active {
+    transform: scale(0.975);
   }
-  .card-top {
-    @apply flex items-start justify-between gap-3;
+  .tile-top {
+    @apply flex items-start justify-between gap-2;
   }
-
-  .icon-chip {
-    @apply grid h-12 w-12 flex-none place-items-center rounded-2xl;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgb(var(--accent-rgb) / 0.3);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  .tile-icon {
+    @apply grid h-10 w-10 flex-none place-items-center rounded-full transition duration-200;
+    background: rgba(255, 255, 255, 0.10);
   }
-  .card.is-active .icon-chip {
-    background: rgb(var(--accent-rgb) / 0.13);
-    border-color: rgb(var(--accent-rgb) / 0.5);
+  .tile-icon svg {
+    height: 22px;
+    width: 22px;
+    filter: grayscale(0.85) brightness(1.15);
+    opacity: 0.8;
   }
-  .icon-chip svg {
-    height: 26px;
-    width: 26px;
+  .tile-name {
+    @apply truncate text-[15px] font-semibold leading-tight;
+    color: var(--ink);
   }
-
-  .card-title {
-    @apply text-[15px] font-semibold leading-tight text-white;
+  .tile-state {
+    @apply mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 text-[13px] leading-[18px];
+    color: var(--ink-2);
   }
-  .card-status {
-    @apply mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5 text-zinc-400;
+  .tile-state > * {
+    max-width: 100%;
   }
 
-  /* ---------- State pills ---------- */
+  /* On: the tile lights up, as an accessory that is on does in Home. */
+  .tile.is-on {
+    background: var(--on-tile);
+    box-shadow: 0 10px 30px -18px rgb(var(--accent-rgb) / 0.9);
+  }
+  .tile.is-on .tile-name {
+    color: var(--on-ink);
+  }
+  .tile.is-on .tile-state {
+    color: var(--on-ink-2);
+  }
+  .tile.is-on .tile-icon {
+    background: rgb(var(--accent-rgb) / 0.22);
+  }
+  .tile.is-on .tile-icon svg {
+    filter: none;
+    opacity: 1;
+  }
+  .tile.is-on .pill {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--on-ink-2);
+  }
+  .tile.is-on .pill-accent {
+    background: rgb(var(--accent-rgb) / 0.2);
+    color: var(--on-ink);
+  }
+
+  /* Alert: something wants attention — water on the floor, a door left open. */
+  .tile.is-alert {
+    background: rgb(var(--alert) / 0.92);
+    box-shadow: 0 12px 34px -14px rgb(var(--alert) / 0.9);
+  }
+  .tile.is-alert .tile-name,
+  .tile.is-alert .tile-state {
+    color: #fff;
+  }
+  .tile.is-alert .tile-icon {
+    background: rgba(255, 255, 255, 0.24);
+  }
+  .tile.is-alert .tile-icon svg {
+    filter: none;
+    opacity: 1;
+  }
+
+  /* ---------- Rooms ---------- */
+  .room-title {
+    @apply text-[22px] font-bold tracking-tight;
+    color: var(--ink);
+  }
+  .room-meta {
+    @apply text-[13px];
+    color: var(--ink-2);
+  }
+
+  /* ---------- Status chips (header) ---------- */
+  .chip {
+    @apply inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    color: var(--ink);
+  }
+  .chip svg {
+    @apply h-4 w-4 flex-none;
+  }
+  .chip-alert {
+    background: rgb(var(--alert) / 0.9);
+    box-shadow: none;
+    color: #fff;
+  }
+  .chip-muted {
+    color: var(--ink-2);
+  }
+
+  /* ---------- State pills (inside sheets) ---------- */
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium;
-    background: rgba(255, 255, 255, 0.06);
-    color: #d4d4d8;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--ink-2);
   }
   .pill-accent {
-    background: rgb(var(--accent-rgb) / 0.16);
+    background: rgb(var(--accent-rgb) / 0.2);
     color: rgb(var(--accent-rgb));
   }
   .pill-muted {
-    background: rgba(255, 255, 255, 0.05);
-    color: #71717a;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ink-3);
   }
   .pill-dot {
     height: 6px;
@@ -89,44 +178,82 @@
     background: currentColor;
   }
 
-  /* ---------- Expanded modal sheet ---------- */
+  /* ---------- Sheet: a bottom sheet on phones, a floating card on wider screens ---------- */
+  .sheet-backdrop {
+    @apply fixed inset-0 z-40;
+    background: rgba(0, 0, 0, 0.45);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
   .sheet {
-    @apply relative flex w-full flex-col overflow-hidden shadow-2xl transition-all;
-    background: #121217;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    --accent-rgb: 148 163 184;
+    @apply fixed inset-x-0 bottom-0 z-50 flex max-h-[92vh] flex-col overflow-hidden rounded-t-[28px] sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[86vh] sm:w-[540px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[28px];
+    background: rgba(24, 24, 30, 0.86);
+    -webkit-backdrop-filter: blur(40px) saturate(160%);
+    backdrop-filter: blur(40px) saturate(160%);
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.08), 0 30px 80px -20px rgba(0, 0, 0, 0.8);
+  }
+  .sheet-scroll {
+    @apply flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))];
+  }
+  .sheet-handle {
+    @apply mx-auto mb-1 mt-2 h-1.5 w-10 rounded-full sm:hidden;
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .sheet-close {
+    @apply grid h-8 w-8 flex-none place-items-center rounded-full transition active:scale-90;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--ink-2);
+  }
+  .sheet-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--ink);
+  }
+  .sheet-icon {
+    @apply grid h-12 w-12 flex-none place-items-center rounded-full;
+    background: rgb(var(--accent-rgb) / 0.2);
+  }
+  .sheet-icon svg {
+    height: 26px;
+    width: 26px;
   }
 
-  /* ---------- Section / List / Item (dark) ---------- */
+  /* ---------- Section / List / Item: inset grouped, as in iOS Settings ---------- */
   .section-title {
-    @apply mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500;
+    @apply mb-1.5 px-4 text-[13px] font-normal uppercase tracking-wide;
+    color: var(--ink-3);
   }
   .field-list {
-    @apply overflow-hidden rounded-2xl border;
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
+    @apply overflow-hidden rounded-[14px];
+    background: var(--group);
   }
   .field-list > li + li {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 var(--hairline);
   }
   .field-row {
-    @apply flex items-center justify-between gap-4 px-4 py-3 text-sm;
+    @apply flex min-h-[46px] items-center justify-between gap-4 px-4 py-2.5 text-[15px];
   }
   .field-label {
-    @apply font-medium text-zinc-400;
+    color: var(--ink);
   }
   .field-value {
-    @apply text-right font-semibold text-white;
+    @apply text-right;
+    color: var(--ink-2);
   }
 
-  /* ---------- Generic dark control button ---------- */
+  /* ---------- Generic control button ---------- */
   .ctl-btn {
-    @apply inline-flex items-center justify-center rounded-xl border transition duration-150 active:scale-95;
-    border-color: rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: #e4e4e7;
+    @apply inline-flex items-center justify-center rounded-xl transition duration-150 active:scale-95;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ink);
   }
   .ctl-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .sheet select,
+  .sheet input[type="time"],
+  .sheet input[type="datetime-local"] {
+    color-scheme: dark;
   }
 }

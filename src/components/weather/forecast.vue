@@ -15,8 +15,8 @@
 
   // WMO weather codes, as Open-Meteo reports them.
   const CODES = [
-    [0, 'Clear'], [1, 'Mostly clear'], [2, 'Partly cloudy'], [3, 'Overcast'], [48, 'Fog'],
-    [57, 'Drizzle'], [67, 'Rain'], [77, 'Snow'], [82, 'Showers'], [86, 'Snow showers'], [99, 'Thunderstorm'],
+    [0, 'Ясно'], [1, 'Переважно ясно'], [2, 'Мінлива хмарність'], [3, 'Хмарно'], [48, 'Туман'],
+    [57, 'Мряка'], [67, 'Дощ'], [77, 'Сніг'], [82, 'Злива'], [86, 'Снігопад'], [99, 'Гроза'],
   ];
   const describe = (code) => code === null || code === undefined ? '—' : (CODES.find(([max]) => code <= max) ?? [0, '—'])[1];
 
@@ -46,8 +46,8 @@
         height: 150,
         scales: {x: {time: true}},
         series: [
-          {value: (u, v) => v === null ? '—' : clock(v * 1000)},
-          {label: 'Outside', stroke: '#199e70', width: 2, points: {show: false}, value: (u, v) => v === null ? '—' : `${v.toFixed(1)}°`},
+          {label: 'Час', value: (u, v) => v === null ? '—' : clock(v * 1000)},
+          {label: 'Надворі', stroke: '#199e70', width: 2, points: {show: false}, value: (u, v) => v === null ? '—' : `${v.toFixed(1)}°`},
         ],
         axes: [
           {stroke: '#898781', grid: {stroke: '#2c2c2a', width: 1}, ticks: {stroke: '#383835', width: 1},
@@ -77,36 +77,43 @@
 
     <template #status>
       <template v-if="p.temperature !== null && p.temperature !== undefined">
-        <span class="pill pill-accent"><span class="pill-dot"></span>{{ round(p.temperature) }}</span>
-        <span>{{ describe(p.code) }}</span>
-        <span>tomorrow {{ range(p.tomorrow) }}</span>
+        <span>{{ round(p.temperature) }}</span>
+        <span class="opacity-70">· {{ describe(p.code) }}</span>
       </template>
-      <span v-else class="pill pill-muted">no forecast</span>
+      <span v-else>Немає прогнозу</span>
     </template>
 
     <template #action>
     </template>
 
     <template #extended>
-      <Section name="Now">
+      <div v-if="p.temperature !== null && p.temperature !== undefined" class="rounded-[22px] bg-[color:var(--group)] px-5 py-4">
+        <div class="flex items-end justify-between gap-3">
+          <span class="text-[56px] font-light leading-none tracking-tight">{{ round(p.temperature) }}</span>
+          <div class="pb-1 text-right text-[15px] leading-snug">
+            <p class="font-semibold">{{ describe(p.code) }}</p>
+            <p class="text-[color:var(--ink-2)]">відчувається {{ round(p.feelsLike) }}</p>
+            <p class="text-[color:var(--ink-2)]">сьогодні {{ range(p.today) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <Section name="Зараз">
         <List>
-          <Item label="Temperature"><span>{{ round(p.temperature) }}</span></Item>
-          <Item label="Feels like"><span>{{ round(p.feelsLike) }}</span></Item>
-          <Item label="Sky"><span>{{ describe(p.code) }}</span></Item>
-          <Item label="Humidity"><span>{{ p.humidity ?? '—' }}%</span></Item>
-          <Item label="Wind"><span>{{ p.wind ?? '—' }} km/h</span></Item>
+          <Item label="Вологість"><span>{{ p.humidity ?? '—' }}%</span></Item>
+          <Item label="Вітер"><span>{{ p.wind ?? '—' }} км/год</span></Item>
         </List>
       </Section>
 
-      <Section name="Next 24 hours">
+      <Section name="Наступні 24 години">
         <div ref="chartEl" class="w-full"></div>
       </Section>
 
-      <Section name="Days">
+      <Section name="Дні">
         <List>
-          <Item label="Today"><span>{{ range(p.today) }} · {{ describe(p.today?.code) }}</span></Item>
-          <Item label="Tomorrow"><span>{{ range(p.tomorrow) }} · {{ describe(p.tomorrow?.code) }}</span></Item>
-          <Item label="Updated" v-if="p.updatedAt"><LastUpdate :timestamp="p.updatedAt"></LastUpdate></Item>
+          <Item label="Сьогодні"><span class="whitespace-nowrap">{{ range(p.today) }} · {{ describe(p.today?.code) }}</span></Item>
+          <Item label="Завтра"><span class="whitespace-nowrap">{{ range(p.tomorrow) }} · {{ describe(p.tomorrow?.code) }}</span></Item>
+          <Item label="Оновлено" v-if="p.updatedAt"><LastUpdate :timestamp="p.updatedAt"></LastUpdate></Item>
         </List>
       </Section>
     </template>
