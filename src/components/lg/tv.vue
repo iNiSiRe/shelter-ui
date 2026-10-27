@@ -286,7 +286,9 @@
     </template>
 
     <template #extended>
-      <div class="remote flex min-h-[calc(100dvh-env(safe-area-inset-top))] flex-col gap-4 p-5 pt-6 text-zinc-200 sm:min-h-0">
+      <!-- shrink-0: an explicit min-height drops the flex item's own min-height:auto, and the remote
+           would shrink to the screen and spill its last rows past its background. -->
+      <div class="remote flex min-h-[calc(100dvh-env(safe-area-inset-top))] shrink-0 flex-col gap-4 p-5 pt-6 text-zinc-200 sm:min-h-0">
 
         <!-- Header -->
         <div class="pr-10">
