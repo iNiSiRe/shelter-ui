@@ -126,7 +126,7 @@
           <Item label="Power journal">
             <span>{{ MODES[p.automations?.power] ?? '—' }}</span>
           </Item>
-          <Item label="Sensor battery alerts">
+          <Item label="Leak & battery alerts">
             <span>{{ MODES[p.automations?.sensors] ?? '—' }}</span>
           </Item>
         </List>
