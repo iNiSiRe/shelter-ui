@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "js-yaml": "^4.1.0",
+    "uplot": "1.6.31",
     "vue": "^3.3.4"
   },
   "devDependencies": {

@@ -13,6 +13,12 @@
   const devices = await Registry.loadDevices();
 
   items.forEach(item => {
+    // A card that is not a device, the history charts say: `widget: <component>` in dashboard.yaml.
+    if (item.widget) {
+      state.dashboard.push({component: item.widget, name: item.name, device: {id: item.widget, properties: {}}});
+      return;
+    }
+
     const device = devices.find(device => device.id === item.device);
 
     if (!device) {

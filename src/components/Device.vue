@@ -1,5 +1,5 @@
 <script setup>
-  import {computed, ref} from "vue";
+  import {computed, ref, watch} from "vue";
 
   const props = defineProps({
     // Semantic accent per device family.
@@ -11,6 +11,10 @@
   });
 
   const extended = ref(false);
+
+  // For cards that draw only while their sheet is on screen (charts need a visible width).
+  const emit = defineEmits(['open', 'close']);
+  watch(extended, value => emit(value ? 'open' : 'close'));
 
   const ACCENTS = {
     amber: '245 158 11',
