@@ -105,7 +105,7 @@
           <Item label="Lasts at this load">
             <span>{{ runtime ?? '—' }}</span>
           </Item>
-          <Item label="Mains side">
+          <Item label="Grid port">
             <span>{{ flow ?? '—' }}</span>
           </Item>
           <Item label="Mode">
