@@ -10,6 +10,7 @@ import Leak from "./components/xiaomi/leak.vue";
 import HVAC from "./components/cooper_hunter/hvac.vue";
 import Thermostat from "./components/terneo/thermostat.vue";
 import LGTV from "./components/lg/tv.vue";
+import DeskLight from "./components/wled/desk.vue";
 import Guard from "./components/guard/guard.vue";
 import Battery from "./components/marstek/venus.vue";
 import History from "./components/history/history.vue";
@@ -27,6 +28,7 @@ app
     .component('cooper_hunter.nordic_evo_2', HVAC)
     .component('terneo', Thermostat)
     .component('lgtv', LGTV)
+    .component('wled', DeskLight)
     .component('guard', Guard)
     .component('marstek.venus_e', Battery)
     .component('history', History)
