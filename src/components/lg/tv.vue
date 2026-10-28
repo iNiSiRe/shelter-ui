@@ -2,7 +2,7 @@
   import Device from "@/components/Device.vue";
   import Toggle from "@/components/controls/Toggle.vue";
   import {registry as Registry} from "@/registry";
-  import {computed, onBeforeUnmount, onMounted, ref} from "vue";
+  import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
 
   const props = defineProps({
     item: Object,
@@ -28,9 +28,13 @@
   const connected = ref(false);
 
   // --- power toggle guard ---
-  // Locks the power switch briefly after a command so a slow `enabled`
-  // state update can't be mistaken for "still off" and toggled back off.
+  // Holds the power switch after a command until the TV reports the state asked for: waking takes
+  // seconds (WOL, boot, pairing), and a second tap meanwhile would land once it is on and switch it
+  // straight back off. The backend keeps trying to reach a waking TV for 60 s, so that is the cap.
+  const POWER_TIMEOUT = 60000;
   const powerPending = ref(false);
+  let powerTarget = null;
+  let powerTimer = null;
 
   const send = (type, payload = {}) => {
     if (pointerSocket?.readyState !== WebSocket.OPEN) {
@@ -134,20 +138,33 @@
     return [...points.filter(isYouTube), ...points.filter(point => !isYouTube(point))];
   });
 
+  const releasePower = () => {
+    clearTimeout(powerTimer);
+    powerTimer = null;
+    powerTarget = null;
+    powerPending.value = false;
+  };
+
+  watch(() => props.device.properties.enabled, enabled => {
+    if (powerPending.value && enabled === powerTarget) {
+      releasePower();
+    }
+  });
+
   const togglePower = async () => {
     if (powerPending.value) {
       return;
     }
 
     powerPending.value = true;
-    const method = props.device.properties.enabled ? 'disable' : 'enable';
+    powerTarget = !props.device.properties.enabled;
+    powerTimer = setTimeout(releasePower, POWER_TIMEOUT);
 
     try {
-      await Registry.call(props.device.id, method);
-    } finally {
-      setTimeout(() => {
-        powerPending.value = false;
-      }, 4000);
+      await Registry.call(props.device.id, powerTarget ? 'enable' : 'disable');
+    } catch (e) {
+      // The request never got through: nothing to wait for.
+      releasePower();
     }
   };
 
@@ -248,6 +265,7 @@
   onBeforeUnmount(() => {
     stopReconnectLoop();
     disconnect();
+    clearTimeout(powerTimer);
 
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -282,7 +300,8 @@
     <template #action>
       <Toggle
           v-on:click="togglePower"
-          :value="device.properties.enabled"></Toggle>
+          :value="device.properties.enabled"
+          :class="{'opacity-60': powerPending}"></Toggle>
     </template>
 
     <template #extended>
