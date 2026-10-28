@@ -276,8 +276,8 @@
           </button>
           <button type="button" class="group flex w-20 flex-col items-center gap-2" :disabled="!online" @click="togglePlay">
             <span class="play" :class="{'is-running': running}">
-              <svg v-if="running" viewBox="0 0 24 24" fill="currentColor" class="h-8 w-8"><rect x="6" y="5" width="4" height="14" rx="1.4"/><rect x="14" y="5" width="4" height="14" rx="1.4"/></svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="ml-1 h-8 w-8"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"/></svg>
+              <svg v-if="running" viewBox="0 0 24 24" fill="currentColor" class="h-7 w-7"><rect x="6" y="5" width="4" height="14" rx="1.4"/><rect x="14" y="5" width="4" height="14" rx="1.4"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="ml-1 h-7 w-7"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 8 5.5z"/></svg>
             </span>
             <span class="text-[11px] font-semibold text-zinc-200">{{ playLabel }}</span>
           </button>
@@ -527,16 +527,17 @@
   .group:active .round, .group:active .play {
     transform: scale(0.94);
   }
+  /* The one light thing on the panel, the way Apple draws its play button; while the robot runs,
+     a thin ring in the colour of what it does. */
   .play {
-    @apply flex h-20 w-20 items-center justify-center rounded-full transition duration-150;
-    color: #06240f;
-    background: radial-gradient(circle at 50% 30%, #5ef08a 0%, #30d158 55%, #1f9c40 100%);
-    box-shadow: 0 0 0 1px rgba(94, 240, 138, 0.5), 0 0 28px rgba(48, 209, 88, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    @apply flex h-[72px] w-[72px] items-center justify-center rounded-full transition duration-200;
+    color: #111114;
+    background: radial-gradient(circle at 50% 28%, #ffffff 0%, #ededf0 58%, #d2d2d8 100%);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), inset 0 -2px 5px rgba(0, 0, 0, 0.12), inset 0 1px 0 #ffffff;
   }
   .play.is-running {
-    color: #2b2100;
-    background: radial-gradient(circle at 50% 30%, #ffe36b 0%, #ffd60a 55%, #c9a500 100%);
-    box-shadow: 0 0 0 1px rgba(255, 227, 107, 0.5), 0 0 28px rgba(255, 214, 10, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: 0 0 0 4px #0d0d11, 0 0 0 6px rgb(var(--mood) / 0.7), 0 12px 28px rgba(0, 0, 0, 0.55),
+      inset 0 -2px 5px rgba(0, 0, 0, 0.12), inset 0 1px 0 #ffffff;
   }
   button:disabled {
     @apply cursor-not-allowed opacity-40;
@@ -579,9 +580,9 @@
   }
   .cta {
     @apply flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition duration-150 active:scale-[0.98];
-    color: #06240f;
-    background: linear-gradient(180deg, #4be37a 0%, #2bbd50 100%);
-    box-shadow: 0 8px 22px rgba(48, 209, 88, 0.3);
+    color: #111114;
+    background: linear-gradient(180deg, #ffffff 0%, #e4e4e9 100%);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 #ffffff;
   }
 
   /* How to clean */
