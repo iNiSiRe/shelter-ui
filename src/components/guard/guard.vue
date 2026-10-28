@@ -133,6 +133,15 @@
           <Item label="Тепло до приходу">
             <span>{{ MODES[p.automations?.precondition] ?? '—' }}</span>
           </Item>
+          <Item label="Автоматика Dyson">
+            <span>{{ MODES[p.automations?.humidifier] ?? '—' }}</span>
+          </Item>
+          <Item label="Поради провітрити">
+            <span>{{ MODES[p.automations?.ventilation] ?? '—' }}</span>
+          </Item>
+          <Item label="Резервна копія Pi">
+            <span>{{ MODES[p.automations?.backup] ?? '—' }}<template v-if="p.backupDone"> · {{ p.backupDone.slice(8, 10) }}.{{ p.backupDone.slice(5, 7) }}</template></span>
+          </Item>
         </List>
       </Section>
     </template>

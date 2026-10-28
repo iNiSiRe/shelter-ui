@@ -7,6 +7,7 @@
   import Item from "../properties/Item.vue";
   import Section from "../properties/Section.vue";
   import LastUpdate from "../properties/LastUpdate.vue";
+  import {outdoorAirLevel} from "../../air";
 
   const props = defineProps({
     item: Object,
@@ -21,6 +22,7 @@
   const describe = (code) => code === null || code === undefined ? '—' : (CODES.find(([max]) => code <= max) ?? [0, '—'])[1];
 
   const p = computed(() => props.device.properties);
+  const air = computed(() => p.value.air ? outdoorAirLevel(p.value.air.aqi) : null);
   const round = (value) => value === null || value === undefined ? '—' : `${Math.round(value)}°`;
   const range = (day) => day ? `${round(day.min)} … ${round(day.max)}` : '—';
 
@@ -103,6 +105,19 @@
           <Item label="Вологість"><span>{{ p.humidity ?? '—' }}%</span></Item>
           <Item label="Вітер"><span>{{ p.wind ?? '—' }} км/год</span></Item>
         </List>
+      </Section>
+
+      <Section v-if="p.air" name="Повітря надворі">
+        <List>
+          <Item label="Якість">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="h-2 w-2 flex-none rounded-full" :style="{background: `rgb(${air.rgb})`}"></span>{{ air.word }} · індекс {{ p.air.aqi }}
+            </span>
+          </Item>
+          <Item label="PM2.5"><span>{{ Math.round(p.air.pm25) }} мкг/м³</span></Item>
+          <Item label="PM10"><span>{{ Math.round(p.air.pm10) }} мкг/м³</span></Item>
+        </List>
+        <p class="mt-1.5 px-4 text-[12px] text-[color:var(--ink-3)]">Оцінка моделі CAMS для району, не вимір біля будинку.</p>
       </Section>
 
       <Section name="Наступні 24 години">

@@ -29,6 +29,20 @@ export function airMetrics(properties: {[key: string]: any}): AirMetric[] {
         });
 }
 
+// Outdoors by the European AQI that Open-Meteo's air-quality forecast gives.
+const OUTDOOR_LEVELS: Array<[number, AirLevel]> = [
+    [20, {word: 'добре', rgb: '48 209 88'}],
+    [40, {word: 'задовільно', rgb: '163 230 53'}],
+    [60, {word: 'помірно', rgb: '255 214 10'}],
+    [80, {word: 'погано', rgb: '255 159 10'}],
+    [100, {word: 'дуже погано', rgb: '255 69 58'}],
+    [Infinity, {word: 'надзвичайно погано', rgb: '191 90 242'}],
+];
+
+export function outdoorAirLevel(aqi: number): AirLevel {
+    return OUTDOOR_LEVELS.find(([limit]) => aqi < limit)![1];
+}
+
 // The air as good as its worst reading; null without any.
 export function airLevel(properties: {[key: string]: any}): AirLevel | null {
     const metrics = airMetrics(properties);
