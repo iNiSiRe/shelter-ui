@@ -16,6 +16,7 @@ import Battery from "./components/marstek/venus.vue";
 import History from "./components/history/history.vue";
 import Forecast from "./components/weather/forecast.vue";
 import DysonHumidifyCool from "./components/dyson/humidify.vue";
+import RoborockVacuum from "./components/roborock/vacuum.vue";
 
 const app = createApp(App);
 
@@ -34,6 +35,7 @@ app
     .component('history', History)
     .component('open_meteo', Forecast)
     .component('dyson.humidify_cool', DysonHumidifyCool)
+    .component('roborock.vacuum', RoborockVacuum)
 ;
 
 app.mount('#app')
