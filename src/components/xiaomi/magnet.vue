@@ -40,7 +40,8 @@
             <span>{{ device.properties.magnet.open ? 'Відчинено' : 'Зачинено' }}</span>
           </Item>
           <Item label="Змінився">
-            <LastUpdate :timestamp="device.properties.magnet.updatedAt"></LastUpdate>
+            <LastUpdate v-if="device.properties.magnet.updatedAt" :timestamp="device.properties.magnet.updatedAt"></LastUpdate>
+            <span v-else>невідомо</span>
           </Item>
         </List>
       </Section>
