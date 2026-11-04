@@ -84,7 +84,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-4 w-4"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <button v-else type="button" class="sheet-close absolute right-3 top-3 z-20" aria-label="Закрити" @click="close">
+          <button v-else type="button" class="sheet-close absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-20" aria-label="Закрити" @click="close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-4 w-4"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
 
