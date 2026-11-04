@@ -17,6 +17,7 @@ import History from "./components/history/history.vue";
 import Forecast from "./components/weather/forecast.vue";
 import DysonHumidifyCool from "./components/dyson/humidify.vue";
 import RoborockVacuum from "./components/roborock/vacuum.vue";
+import EcoFlowDelta2 from "./components/ecoflow/delta2.vue";
 
 const app = createApp(App);
 
@@ -36,6 +37,7 @@ app
     .component('open_meteo', Forecast)
     .component('dyson.humidify_cool', DysonHumidifyCool)
     .component('roborock.vacuum', RoborockVacuum)
+    .component('ecoflow.delta2', EcoFlowDelta2)
 ;
 
 app.mount('#app')
