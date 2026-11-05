@@ -28,9 +28,13 @@ export class DeviceUpdateEvent extends Event
     }
 }
 
+// The network may still be waking up when the app returns (the Tailscale tunnel on cellular).
+const RELOAD_ATTEMPTS = 3;
+const RELOAD_RETRY_DELAY = 2000;
+
 export class Registry extends EventTarget
 {
-    private readonly serverEvents: EventSource;
+    private serverEvents: EventSource;
 
     constructor(
         // The Pi the page came from, unless the build names another: the same build then works
@@ -38,8 +42,45 @@ export class Registry extends EventTarget
         public readonly baseUrl: string = import.meta.env.VITE_API_URL || `${location.protocol}//${location.hostname}:8080`,
     ) {
         super();
-        this.serverEvents = new EventSource(`${this.baseUrl}/sse/v1/devices`);
-        this.serverEvents.addEventListener("update", this.handleDeviceUpdate.bind(this));
+        this.serverEvents = this.openServerEvents();
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.resume();
+            }
+        });
+    }
+
+    private openServerEvents(): EventSource
+    {
+        const events = new EventSource(`${this.baseUrl}/sse/v1/devices`);
+        events.addEventListener("update", this.handleDeviceUpdate.bind(this));
+
+        return events;
+    }
+
+    // iOS may cut the stream of an app in the background, and the server does not replay what was
+    // missed, so a returning app starts a new stream and reads the devices again. The stream goes
+    // first: an update that lands between the two is then not lost.
+    private resume(): void
+    {
+        this.serverEvents.close();
+        this.serverEvents = this.openServerEvents();
+
+        this.reloadDevices();
+    }
+
+    private async reloadDevices(attemptsLeft: number = RELOAD_ATTEMPTS): Promise<void>
+    {
+        try {
+            for (const device of await this.loadDevices()) {
+                this.dispatchEvent(new DeviceUpdateEvent(device.id, device.properties));
+            }
+        } catch {
+            if (attemptsLeft > 1) {
+                setTimeout(() => this.reloadDevices(attemptsLeft - 1), RELOAD_RETRY_DELAY);
+            }
+        }
     }
 
     private handleDeviceUpdate(event: MessageEvent): void
@@ -55,7 +96,7 @@ export class Registry extends EventTarget
 
     async loadDevices(): Promise<Array<Device>>
     {
-        return await fetch(`${this.baseUrl}/api/v1/devices`)
+        return await fetch(`${this.baseUrl}/api/v1/devices`, {cache: 'no-store'})
             .then(response => response.json())
             .then(response => {
                 return response.data;
