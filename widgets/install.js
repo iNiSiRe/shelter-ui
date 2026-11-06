@@ -1,0 +1,15 @@
+if (module.filename.endsWith("/Дім.js")) throw new Error("Встав це в новий скрипт, а не в «Дім»");
+const local = FileManager.local();
+const inLocal = local.listContents(local.documentsDirectory()).some((f) => f.endsWith(".js"));
+const fm = inLocal ? local : FileManager.iCloud();
+const script = (name) => fm.joinPath(fm.documentsDirectory(), name + ".js");
+const data = await new Request("http://192.168.0.197/widgets/dim.js").load();
+const code = data.toRawString();
+if (!code || !code.startsWith("// Дім:")) throw new Error("Не той файл");
+fm.writeString(script("Дім"), code);
+if (fm.fileExists(script("Дім екран"))) fm.remove(script("Дім екран"));
+const a = new Alert();
+a.title = "Готово";
+a.message = "Скрипт «Дім» готовий. Цей можна видалити.";
+a.addAction("OK");
+await a.present();

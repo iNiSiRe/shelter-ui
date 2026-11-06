@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Віджети Дім</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: #0b0d16; color: #f2f3f7;
+         font: 17px/1.45 -apple-system, system-ui, sans-serif; }
+  main { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 28px; line-height: 1.15; margin: 0 0 20px; }
+  h2 { font-size: 17px; margin: 28px 0 8px; }
+  ol { margin: 0; padding-left: 22px; }
+  li { margin-bottom: 8px; }
+  button, .open { display: block; width: 100%; padding: 16px; margin: 0 0 10px; border: 0; border-radius: 14px;
+                  text-align: center; text-decoration: none; font: 600 18px -apple-system, system-ui, sans-serif; }
+  button { background: #30d158; color: #06240f; }
+  .open { background: #232a40; color: #f2f3f7; }
+  #note { min-height: 24px; margin: 0 0 10px; color: #ffb340; }
+  /* 16 px: at anything smaller iOS zooms the page when the field takes focus. */
+  textarea { width: 100%; height: 110px; padding: 10px; border: 1px solid #333a50; border-radius: 10px;
+             background: #151927; color: #c9cede; font: 16px/1.3 ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Віджети «Дім»</h1>
+  <button id="copy" type="button">Скопіювати</button>
+  <a class="open" href="scriptable:///add">Відкрити Scriptable</a>
+  <p id="note" role="status"></p>
+  <textarea id="code" spellcheck="false" autocapitalize="off" autocorrect="off">if (module.filename.endsWith("/Дім.js")) throw new Error("Встав це в новий скрипт, а не в «Дім»");
+const local = FileManager.local();
+const inLocal = local.listContents(local.documentsDirectory()).some((f) => f.endsWith(".js"));
+const fm = inLocal ? local : FileManager.iCloud();
+const script = (name) => fm.joinPath(fm.documentsDirectory(), name + ".js");
+const data = await new Request("http://192.168.0.197/widgets/dim.js").load();
+const code = data.toRawString();
+if (!code || !code.startsWith("// Дім:")) throw new Error("Не той файл");
+fm.writeString(script("Дім"), code);
+if (fm.fileExists(script("Дім екран"))) fm.remove(script("Дім екран"));
+const a = new Alert();
+a.title = "Готово";
+a.message = "Скрипт «Дім» готовий. Цей можна видалити.";
+a.addAction("OK");
+await a.present();
+</textarea>
+  <h2>1. У Scriptable</h2>
+  <ol>
+    <li>Якщо Safari запитає, дозволь відкрити Scriptable.</li>
+    <li>Якщо нового скрипта не з'явилось, натисни «+».</li>
+    <li>Встав скопійований текст і натисни ▶.</li>
+    <li>Дочекайся «Готово». Цей скрипт більше не потрібен, його можна видалити.</li>
+  </ol>
+  <p>Телефон має бути в домашньому Wi-Fi.</p>
+  <h2>2. Домашній екран</h2>
+  <ol>
+    <li>Затисни порожнє місце на екрані, натисни «Редагувати», потім «Додати віджет».</li>
+    <li>Вибери Scriptable, гортай до другого, широкого розміру і додай його.</li>
+    <li>Затисни віджет, вибери «Редагувати віджет» і в полі Script вкажи «Дім».</li>
+  </ol>
+  <h2>3. Заблокований екран</h2>
+  <ol>
+    <li>Затисни заблокований екран і натисни «Налаштувати», потім вибери заблокований екран.</li>
+    <li>Натисни рядок під годинником, вибери Scriptable і широкий прямокутний віджет.</li>
+    <li>Натисни доданий віджет і в полі Script вкажи «Дім». Якщо він там уже стоїть, нічого не змінюй.</li>
+  </ol>
+</main>
+<script>
+  // A plain-HTTP page has no navigator.clipboard, and iOS copies only from a field it can see.
+  document.getElementById("copy").addEventListener("click", function () {
+    var code = document.getElementById("code");
+    var note = document.getElementById("note");
+    code.focus();
+    code.setSelectionRange(0, code.value.length);
+    var copied = false;
+    try { copied = document.execCommand("copy"); } catch (e) {}
+    if (copied) {
+      code.blur();
+      note.textContent = "Скопійовано. Тепер відкрий Scriptable.";
+    } else {
+      note.textContent = "Не скопіювалось. Текст виділено, скопіюй його вручну.";
+    }
+  });
+</script>
+</body>
+</html>
