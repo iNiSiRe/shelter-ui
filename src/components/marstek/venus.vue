@@ -1,5 +1,6 @@
 <script setup>
-  import {computed} from "vue";
+  import {computed, onUnmounted, ref, watch} from "vue";
+  import {registry as Registry} from "../../registry";
   import Device from "../Device.vue";
   import List from "../properties/List.vue";
   import Item from "../properties/Item.vue";
@@ -54,6 +55,34 @@
   const level = computed(() => soc.value >= 50 ? '163 230 53' : soc.value >= 20 ? '245 158 11' : '251 113 133');
 
   const signal = computed(() => wifiSignal(p.value.wifiRssi));
+
+  // The command waits its turn behind the polling, half a minute at the worst; ledOffAt says it is done.
+  const LED_WAIT = 30_000;
+  const led = ref('idle');
+  let ledTimer = null;
+
+  const ledFailed = () => {
+    clearTimeout(ledTimer);
+    led.value = 'failed';
+  };
+
+  const ledOff = async () => {
+    led.value = 'sending';
+    clearTimeout(ledTimer);
+    ledTimer = setTimeout(ledFailed, LED_WAIT);
+
+    const result = await Registry.call(props.device.id, 'ledOff').catch(() => null);
+    if (result?.code !== 0) {
+      ledFailed();
+    }
+  };
+
+  watch(() => p.value.ledOffAt, () => {
+    clearTimeout(ledTimer);
+    led.value = 'idle';
+  });
+
+  onUnmounted(() => clearTimeout(ledTimer));
 </script>
 
 <template>
@@ -103,6 +132,21 @@
           </Item>
           <Item label="Режим">
             <span>{{ p.mode ?? '—' }}</span>
+          </Item>
+        </List>
+      </Section>
+
+      <Section name="Керування">
+        <List>
+          <Item label="Світло на панелі">
+            <button type="button" class="ctl-btn px-3 py-1.5 text-sm disabled:opacity-50"
+                    :disabled="!online || led === 'sending'" @click="ledOff">
+              {{ led === 'sending' ? 'Вимикаю…' : 'Вимкнути' }}
+            </button>
+          </Item>
+          <li v-if="led === 'failed'" class="field-row text-[#ff453a]">Не вдалося вимкнути</li>
+          <Item label="Вимикали" v-if="p.ledOffAt">
+            <LastUpdate :timestamp="p.ledOffAt"></LastUpdate>
           </Item>
         </List>
       </Section>
