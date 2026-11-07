@@ -9,6 +9,8 @@ const hex = (h, a = 1) => new Color(h, a);
 const family = config.widgetFamily || "medium";
 const isLock = family === "accessoryRectangular";
 const isSmall = family === "small";
+// Другий віджет на заблокованому екрані: той самий скрипт, у полі Parameter будь-який текст.
+const isRight = isLock && Boolean(args.widgetParameter);
 const screenSize = Device.screenSize();
 const phone = Math.min(screenSize.width, screenSize.height);
 const L = isLock
@@ -35,6 +37,13 @@ function deg(p, key) {
   return Number.isFinite(n) ? Math.round(n) + "°" : "—";
 }
 
+// Останнє відоме значення: у відключення датчики мовчать, а тепло в домі міняється повільно.
+function reading(p, key) {
+  const n = p ? parseFloat(p[key]) : NaN;
+  if (!Number.isFinite(n)) return {text: "—", staleSince: null};
+  return {text: Math.round(n) + "°", staleSince: p.available === false ? p.updatedAt : null};
+}
+
 function mainsState(guard) {
   const m = guard && guard.mains;
   if (!m) return {icon: "questionmark", title: "Світло: ?", tint: WHITE};
@@ -55,6 +64,11 @@ async function readState() {
     deg(props("cooper_hunter_kitchen"), "indoorTemperature"),
     deg(props("cooper_hunter_bedroom"), "indoorTemperature"),
     deg(props("weather_outdoor"), "temperature"),
+  ];
+  s.readings = [
+    reading(props("cooper_hunter_kitchen"), "indoorTemperature"),
+    reading(props("cooper_hunter_bedroom"), "indoorTemperature"),
+    reading(props("weather_outdoor"), "temperature"),
   ];
   const b = props("marstek_venus");
   if (!(b && b.available === true && b.soc != null)) {
@@ -77,8 +91,9 @@ async function loadState() {
   try {
     return await readState();
   } catch (e) {
-    return {icon: "wifi.slash", title: "Немає зв'язку", tint: WHITE, note: "",
-      time: clock(Date.now()), soc: null, temps: ["—", "—", "—"]};
+    const none = {text: "—", staleSince: null};
+    return {icon: "wifi.slash", title: "Немає зв'язку", tint: WHITE, note: "", failed: true,
+      time: clock(Date.now()), soc: null, temps: ["—", "—", "—"], readings: [none, none, none]};
   }
 }
 
@@ -133,6 +148,21 @@ function newWidget() {
   return w;
 }
 
+function header(root, s) {
+  const top = root.addStack();
+  top.layoutHorizontally();
+  top.centerAlignContent();
+  top.spacing = isLock ? 4 : 5;
+  const sym = SFSymbol.named(s.icon);
+  sym.applyFont(Font.semiboldSystemFont(L.symbol));
+  const icon = top.addImage(sym.image);
+  icon.imageSize = new Size(L.symbol, L.symbol);
+  icon.tintColor = isLock ? WHITE : s.tint;
+  label(top, s.title, Font.semiboldSystemFont(L.title), 1);
+  top.addSpacer();
+  label(top, s.time, Font.mediumSystemFont(L.time), 0.65);
+}
+
 function build(s) {
   const w = newWidget();
   if (isLock) {
@@ -150,18 +180,7 @@ function build(s) {
   if (!isLock) root.size = new Size(L.width, 0);
   root.spacing = L.rise;
 
-  const top = root.addStack();
-  top.layoutHorizontally();
-  top.centerAlignContent();
-  top.spacing = isLock ? 4 : 5;
-  const sym = SFSymbol.named(s.icon);
-  sym.applyFont(Font.semiboldSystemFont(L.symbol));
-  const icon = top.addImage(sym.image);
-  icon.imageSize = new Size(L.symbol, L.symbol);
-  icon.tintColor = isLock ? WHITE : s.tint;
-  label(top, s.title, Font.semiboldSystemFont(L.title), 1);
-  top.addSpacer();
-  label(top, s.time, Font.mediumSystemFont(L.time), 0.65);
+  header(root, s);
 
   const mid = root.addStack();
   mid.layoutHorizontally();
@@ -177,6 +196,29 @@ function build(s) {
   return w;
 }
 
+// Те саме розташування, що в лівому віджеті: великі числа на рівні відсотків, підписи на рівні комірок.
+function buildRight(s) {
+  const w = newWidget();
+  w.setPadding(0, 0, 0, 0);
+  const root = w.addStack();
+  root.layoutVertically();
+  root.spacing = L.rise;
+  const stale = s.readings.map((r) => r.staleSince).filter(Boolean);
+  const time = stale.length ? "до " + clock(Math.max(...stale)) : "";
+  header(root, s.failed ? s : {icon: "thermometer.medium", title: "Температура", tint: WHITE, time});
+  const row = root.addStack();
+  row.layoutHorizontally();
+  ["Кухня", "Спальня", "Надворі"].forEach((name, i) => {
+    if (i > 0) row.addSpacer();
+    const col = row.addStack();
+    col.layoutVertically();
+    const r = s.readings[i];
+    label(col, r.text, Font.boldRoundedSystemFont(L.soc), r.staleSince ? 0.55 : 1);
+    label(col, name, Font.mediumSystemFont(L.time), 0.65);
+  });
+  return w;
+}
+
 // Для круглого і рядкового віджетів місця вистачає лише на відсотки.
 function tiny(s) {
   const w = newWidget();
@@ -187,7 +229,8 @@ function tiny(s) {
 }
 
 const state = await loadState();
-const widget = family.startsWith("accessory") && !isLock ? tiny(state) : build(state);
+const widget = isRight ? buildRight(state)
+  : family.startsWith("accessory") && !isLock ? tiny(state) : build(state);
 if (config.runsInApp) await widget.presentMedium();
 Script.setWidget(widget);
 Script.complete();
