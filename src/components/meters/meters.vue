@@ -10,7 +10,7 @@
     device: Object
   });
 
-  // The monthly readings, kept by the Guard (guard/meters.ts): on the 25th it asks in Telegram,
+  // The monthly readings, kept by the Guard (guard/meters.ts): 5 days before the month's end it asks in Telegram,
   // and the answer goes to Kyivvodokanal (cold and hot water) and KTE (heat and hot water). The
   // same can be typed here.
   const KINDS = [
@@ -20,7 +20,8 @@
   ];
   const NAMES = {heat: 'тепло', cold: 'холодна вода', hot: 'гаряча вода'};
   const MONTHS = ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'];
-  const ASK_DAY = 25;
+  // The Guard's first question: this many days before the month's last day.
+  const DAYS_BEFORE_END = 5;
 
   const p = computed(() => props.device.properties ?? {});
   const monthOf = (month) => MONTHS[Number(month.slice(5, 7)) - 1] ?? month;
@@ -33,8 +34,10 @@
   const now = ref(Date.now());
   const tick = () => now.value = Date.now();
   const today = computed(() => new Date(now.value));
-  const askDate = computed(() => `${ASK_DAY}.${String(today.value.getMonth() + 1).padStart(2, '0')}`);
-  const lastDay = computed(() => new Date(today.value.getFullYear(), today.value.getMonth() + 1, 0).getDate() === today.value.getDate());
+  const monthDays = computed(() => new Date(today.value.getFullYear(), today.value.getMonth() + 1, 0).getDate());
+  const askDay = computed(() => monthDays.value - DAYS_BEFORE_END);
+  const askDate = computed(() => `${askDay.value}.${String(today.value.getMonth() + 1).padStart(2, '0')}`);
+  const lastDay = computed(() => monthDays.value === today.value.getDate());
 
   const cabinets = computed(() => Object.entries(p.value.cabinets ?? {}).map(([id, cabinet]) => ({id, ...cabinet})));
   const mode = computed(() => p.value.mode ?? 'off');
@@ -58,7 +61,7 @@
   const allDone = computed(() => cabinets.value.length > 0 && cabinets.value.every(cabinet => cabinet.status === 'done'));
   const sending = computed(() => cabinets.value.some(cabinet => cabinet.status === 'sending'));
   const doneAt = computed(() => Math.max(...cabinets.value.map(cabinet => cabinet.at ?? 0)));
-  const waiting = computed(() => p.value.readings == null && today.value.getDate() >= ASK_DAY);
+  const waiting = computed(() => p.value.readings == null && today.value.getDate() >= askDay.value);
 
   // Nothing to say about the cabinets before anything went to them, unless a login is missing.
   const showCabinets = computed(() => cabinets.value.some(cabinet => cabinet.status !== 'idle' || cabinet.ready === false));
@@ -247,7 +250,8 @@
       </Section>
 
       <p class="px-4 text-[12px] leading-[1.45] text-[color:var(--ink-3)]">
-        {{ ASK_DAY }} числа Guard питає в Telegram тепло і холодну воду, а відповідь подає у Водоканал і КТЕ.
+        За {{ DAYS_BEFORE_END }} днів до кінця місяця Guard питає в Telegram тепло і холодну воду, раз на день, поки не відповісте,
+        а відповідь подає у Водоканал і КТЕ.
         Гаряча вода йде тією цифрою, що вже стоїть у кабінеті, якщо не вписати нову.
       </p>
     </template>
