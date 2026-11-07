@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт телевізора</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: #0b0d16; color: #f2f3f7;
+         font: 17px/1.45 -apple-system, system-ui, sans-serif; }
+  main { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 28px; line-height: 1.15; margin: 0 0 12px; }
+  h2 { font-size: 17px; margin: 26px 0 8px; }
+  ol { margin: 0; padding-left: 22px; }
+  ol li { margin-bottom: 8px; }
+  a { color: #64a8ff; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  .row { padding: 12px 0; border-top: 1px solid #262c40; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .copy { padding: 8px 14px; border: 0; border-radius: 10px; background: #30d158; color: #06240f;
+           font: 600 15px -apple-system, system-ui, sans-serif; }
+  .copy.failed { background: #ff9f0a; color: #2b1a00; }
+  /* 16 px: at anything smaller iOS zooms the page when the field takes focus. */
+  input { width: 100%; padding: 8px 10px; border: 1px solid #333a50; border-radius: 10px; background: #151927;
+           color: #c9cede; font: 16px ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Пульт телевізора</h1>
+  <p>Вісім плиток на домашньому екрані. Працює вдома і будь-де з увімкненим Tailscale.</p>
+
+  <h2>1. Перша плитка</h2>
+  <ol>
+    <li>Унизу, в рядку «Увімкнути», натисни «Скопіювати».</li>
+    <li><a href="shortcuts://create-shortcut">Відкрий нову команду</a>.</li>
+    <li>Додай дію «Отримати вміст URL» (Get Contents of URL) і встав адресу в її поле. Більше в дії нічого не міняй.</li>
+    <li>Назви команду «Увімкнути» і заверши редагування.</li>
+  </ol>
+
+  <h2>2. Решта плиток</h2>
+  <ol>
+    <li>Затисни готову команду й вибери «Дублювати».</li>
+    <li>Відкрий копію, заміни адресу наступною зі списку й зміни назву.</li>
+    <li>Повтори для всіх рядків.</li>
+  </ol>
+
+  <h2>3. Папка</h2>
+  <ol>
+    <li>У списку команд натисни «Вибрати», познач усі вісім і перемісти їх у нову папку «Телевізор».</li>
+    <li>Запусти кожну команду один раз і дозволь доступ, щоб iOS не питала про це з віджета. Телевізор при цьому відреагує.</li>
+  </ol>
+
+  <h2>4. Віджет</h2>
+  <ol>
+    <li>Затисни порожнє місце на домашньому екрані, натисни «Редагувати», потім «Додати віджет».</li>
+    <li>Вибери «Швидкі команди» (Shortcuts) і найбільший розмір.</li>
+    <li>Затисни віджет, вибери «Редагувати віджет» і вкажи папку «Телевізор».</li>
+  </ol>
+
+  <h2>Адреси</h2>
+  <ul>
+    <li class="row">
+      <div class="head"><b>Увімкнути</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/enable" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Увімкнути">
+    </li>
+    <li class="row">
+      <div class="head"><b>Вимкнути</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/disable" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Вимкнути">
+    </li>
+    <li class="row">
+      <div class="head"><b>Гучніше</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/volumeUp" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Гучніше">
+    </li>
+    <li class="row">
+      <div class="head"><b>Тихіше</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/volumeDown" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Тихіше">
+    </li>
+    <li class="row">
+      <div class="head"><b>Без звуку</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/toggleMute" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Без звуку">
+    </li>
+    <li class="row">
+      <div class="head"><b>Пауза</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/togglePlay" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Пауза">
+    </li>
+    <li class="row">
+      <div class="head"><b>Галерея</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/openApp?value=com.webos.app.igallery" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Галерея">
+    </li>
+    <li class="row">
+      <div class="head"><b>Фото й відео</b><button type="button" class="copy">Скопіювати</button></div>
+      <input type="text" value="http://192.168.0.197:8080/api/v1/devices/lgtv/openApp?value=com.webos.app.photovideo" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="Фото й відео">
+    </li>
+  </ul>
+</main>
+<script>
+  // A plain-HTTP page has no navigator.clipboard, and iOS copies only from a field it can see.
+  document.querySelectorAll(".row").forEach(function (row) {
+    var button = row.querySelector(".copy");
+    var field = row.querySelector("input");
+    button.addEventListener("click", function () {
+      field.focus();
+      field.setSelectionRange(0, field.value.length);
+      var copied = false;
+      try { copied = document.execCommand("copy"); } catch (e) {}
+      document.querySelectorAll(".copy").forEach(function (other) {
+        other.textContent = "Скопіювати";
+        other.classList.remove("failed");
+      });
+      if (copied) {
+        field.blur();
+        button.textContent = "Скопійовано";
+      } else {
+        button.textContent = "Скопіюй вручну";
+        button.classList.add("failed");
+      }
+    });
+  });
+</script>
+</body>
+</html>
