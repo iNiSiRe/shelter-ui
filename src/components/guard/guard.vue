@@ -139,6 +139,9 @@
           <Item label="Поради провітрити">
             <span>{{ MODES[p.automations?.ventilation] ?? '—' }}</span>
           </Item>
+          <Item label="Нагадування про фільтри води">
+            <span>{{ MODES[p.automations?.filters] ?? '—' }}</span>
+          </Item>
           <Item label="Резервна копія Pi">
             <span>{{ MODES[p.automations?.backup] ?? '—' }}<template v-if="p.backupDone"> · {{ p.backupDone.slice(8, 10) }}.{{ p.backupDone.slice(5, 7) }}</template></span>
           </Item>

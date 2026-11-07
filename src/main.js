@@ -18,6 +18,7 @@ import Forecast from "./components/weather/forecast.vue";
 import DysonHumidifyCool from "./components/dyson/humidify.vue";
 import RoborockVacuum from "./components/roborock/vacuum.vue";
 import EcoFlowDelta2 from "./components/ecoflow/delta2.vue";
+import WaterFilters from "./components/filters/water.vue";
 
 const app = createApp(App);
 
@@ -38,6 +39,7 @@ app
     .component('dyson.humidify_cool', DysonHumidifyCool)
     .component('roborock.vacuum', RoborockVacuum)
     .component('ecoflow.delta2', EcoFlowDelta2)
+    .component('water_filters', WaterFilters)
 ;
 
 app.mount('#app')
