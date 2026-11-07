@@ -28,7 +28,7 @@
       }
 
       state.names[device.id] = item.name;
-      return {component: device.model, name: item.name, wide: !!item.wide, device};
+      return {component: device.model, name: item.name, wide: !!item.wide, group: item.group ?? null, device};
     }).filter(item => item !== null),
   })).filter(room => room.items.length > 0);
 

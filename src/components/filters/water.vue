@@ -13,7 +13,7 @@
   // lifeDays from its last replacement.
   const GROUPS = [
     {key: 'drinking', name: 'Питна вода', short: 'питна', place: 'під мийкою'},
-    {key: 'main', name: 'Загальна вода', short: 'загальна', place: 'на вводі'},
+    {key: 'main', name: 'Проточна вода', short: 'проточна', place: 'у ванній'},
   ];
 
   const LIVES = [30, 60, 90, 120, 180, 270, 365, 540, 730, 1095];
@@ -43,7 +43,12 @@
   };
   const fullDate = (date) => `${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`;
 
-  const filters = computed(() => (props.device.properties.filters ?? []).map(filter => {
+  // dashboard.yaml may give the tile one group (`group: drinking`); without it the tile has both.
+  const single = computed(() => GROUPS.some(group => group.key === props.item.group));
+
+  const filters = computed(() => (props.device.properties.filters ?? [])
+      .filter(filter => !single.value || filter.group === props.item.group)
+      .map(filter => {
     const left = filter.dueAt ? dayNumber(filter.dueAt) - dayNumber(today.value) : null;
     const state = left === null ? 'unknown' : left <= 0 ? 'due' : left <= 14 ? 'soon' : 'ok';
     return {
@@ -143,8 +148,9 @@
 
     <template #status>
       <span v-if="!filters.length">—</span>
-      <span v-else-if="overdue" class="font-medium">Пора міняти · {{ nextGroup?.short }}</span>
-      <span v-else-if="unknown === filters.length">Вкажіть дати замін</span>
+      <span v-else-if="overdue" class="font-medium">Пора міняти<template v-if="!single"> · {{ nextGroup?.short }}</template></span>
+      <span v-else-if="unknown === filters.length">{{ filters.length > 1 ? 'Вкажіть дати замін' : 'Вкажіть дату заміни' }}</span>
+      <span v-else-if="next && single">Заміна за {{ daysText(next.left) }}</span>
       <span v-else-if="next">{{ nextGroup?.name.split(' ')[0] }} — за {{ daysText(next.left) }}</span>
     </template>
 
@@ -165,7 +171,8 @@
         </div>
       </div>
 
-      <Section v-for="group in groups" :key="group.key" :name="`${group.name} · ${group.place}`">
+      <Section v-for="group in groups" :key="group.key"
+               :name="single ? (group.filters.length > 1 ? `Картриджі · ${group.place}` : `Картридж · ${group.place}`) : `${group.name} · ${group.place}`">
         <ul role="list" class="field-list">
           <li v-for="filter in group.filters" :key="filter.id">
             <button type="button" class="filter-row" :aria-expanded="open === filter.id" @click="toggle(filter.id, filter)">

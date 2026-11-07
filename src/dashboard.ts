@@ -1,8 +1,9 @@
 import Yaml from "js-yaml";
 
 // A dashboard entry: a device by id, or a card that is no device at all (`widget: history`).
-// `wide` spans two columns.
-export type Item = {name: string, device?: string, widget?: string, wide?: boolean};
+// `wide` spans two columns. `group` shows one part of a device that serves several rooms: the
+// water filters are `drinking` in the kitchen and `main` in the bathroom.
+export type Item = {name: string, device?: string, widget?: string, wide?: boolean, group?: string};
 
 export type Room = {name: string, items: Array<Item>};
 
