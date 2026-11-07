@@ -172,7 +172,7 @@
       </div>
 
       <Section v-for="group in groups" :key="group.key"
-               :name="single ? (group.filters.length > 1 ? `Картриджі · ${group.place}` : `Картридж · ${group.place}`) : `${group.name} · ${group.place}`">
+               :name="single ? (group.filters.length > 1 ? `Картриджі · ${group.place}` : '') : `${group.name} · ${group.place}`">
         <ul role="list" class="field-list">
           <li v-for="filter in group.filters" :key="filter.id">
             <button type="button" class="filter-row" :aria-expanded="open === filter.id" @click="toggle(filter.id, filter)">
