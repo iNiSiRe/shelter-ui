@@ -20,6 +20,7 @@ import RoborockVacuum from "./components/roborock/vacuum.vue";
 import EcoFlowDelta2 from "./components/ecoflow/delta2.vue";
 import WaterFilters from "./components/filters/water.vue";
 import UtilityMeters from "./components/meters/meters.vue";
+import Dishes from "./components/recipes/dishes.vue";
 
 const app = createApp(App);
 
@@ -42,6 +43,7 @@ app
     .component('ecoflow.delta2', EcoFlowDelta2)
     .component('water_filters', WaterFilters)
     .component('utility_meters', UtilityMeters)
+    .component('recipes', Dishes)
 ;
 
 app.mount('#app')
