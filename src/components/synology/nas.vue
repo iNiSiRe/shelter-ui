@@ -6,7 +6,7 @@
   import Item from "@/components/properties/Item.vue";
   import Section from "@/components/properties/Section.vue";
   import {registry as Registry} from "@/registry";
-  import {prettifyMilliseconds} from "@/format";
+  import {ago, prettifyMilliseconds} from "@/format";
 
   const props = defineProps({
     item: Object,
@@ -31,18 +31,27 @@
 
   const tileStatus = computed(() => moving.value && elapsed.value ? `${STATUS[power.value]} ${elapsed.value}` : STATUS[power.value]);
 
-  // "з 10:49" today, "з 9 лист., 23:41" before.
-  const sinceText = computed(() => {
-    if (!p.value.since) {
-      return null;
+  // Two units, as DSM's Info Center counts its uptime: "2 дн 4 год", "3 год 12 хв", "25 хв".
+  const duration = (ms) => {
+    const minutes = Math.floor(ms / 60_000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) {
+      return `${days} дн ${hours % 24} год`;
     }
-    const date = new Date(p.value.since);
-    const time = date.toLocaleTimeString('uk-UA', {hour: '2-digit', minute: '2-digit'});
-    if (date.toDateString() === new Date(now.value).toDateString()) {
-      return `з ${time}`;
+    if (hours > 0) {
+      return `${hours} год ${minutes % 60} хв`;
     }
-    return `з ${date.toLocaleDateString('uk-UA', {day: 'numeric', month: 'short'})}, ${time}`;
+    return minutes > 0 ? `${minutes} хв` : `${Math.floor(ms / 1000)} с`;
+  };
+
+  // On: how long it has run, from DSM's own uptime when the Pi has the login (right across
+  // restarts of the module), else since the module saw it come on. Off: since when.
+  const uptime = computed(() => {
+    const start = p.value.bootedAt ?? p.value.since;
+    return start ? duration(Math.max(0, now.value - start)) : null;
   });
+  const offFor = computed(() => p.value.since ? ago(p.value.since, now.value) : null);
 
   const busy = ref(false);
   const failed = ref(null);
@@ -110,8 +119,11 @@
               <span class="pill-dot"></span>{{ STATUS[power] }}
             </span>
           </Item>
-          <Item v-if="sinceText && power !== 'unknown'" label="Відтоді">
-            {{ sinceText }}
+          <Item v-if="on && uptime" label="Час роботи">
+            {{ uptime }}
+          </Item>
+          <Item v-else-if="power === 'off' && offFor" label="Вимкнувся">
+            {{ offFor }}
           </Item>
         </List>
 
