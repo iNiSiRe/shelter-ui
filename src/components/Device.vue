@@ -18,6 +18,9 @@
   const emit = defineEmits(['open', 'close']);
 
   const close = () => extended.value = false;
+
+  // A card can open its own sheet: the NAS tile's switch asks there before it shuts the NAS down.
+  defineExpose({open: () => extended.value = true});
   const onKey = (event) => {
     if (event.key === 'Escape') {
       close();
