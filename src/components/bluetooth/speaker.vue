@@ -1,5 +1,5 @@
 <script setup>
-  import {computed, onUnmounted, reactive, ref, watch} from "vue";
+  import {computed, onUnmounted, reactive, ref} from "vue";
   import Device from "@/components/Device.vue";
   import Toggle from "@/components/controls/Toggle.vue";
   import List from "@/components/properties/List.vue";
@@ -17,6 +17,9 @@
   const connecting = computed(() => p.value.connecting === true);
 
   const tileStatus = computed(() => {
+    if (current.value) {
+      return p.value.songStartedAt ? `Грає · ${current.value.title}` : 'Готую мелодію…';
+    }
     if (connecting.value) {
       return 'Підключаю…';
     }
@@ -58,15 +61,26 @@
 
   // ---------- The keyboard ----------
 
-  const SOUNDS = [
-    {id: 'piano', label: 'Піаніно'},
-    {id: 'organ', label: 'Орган'},
-    {id: 'synth', label: 'Синт'},
-    {id: 'bells', label: 'Дзвіночки'},
-  ];
-  const sound = ref(p.value.sound ?? 'piano');
-  watch(() => p.value.sound, value => value && (sound.value = value));
-  const soundLabel = computed(() => SOUNDS.find(s => s.id === sound.value)?.label ?? sound.value);
+  // ---------- Tunes: five minutes each, played by the Pi on its own ----------
+
+  const songs = computed(() => Array.isArray(p.value.songs) ? p.value.songs : []);
+  const current = computed(() => songs.value.find(song => song.id === p.value.song) ?? null);
+
+  // Ticks while the card lives, so a tune's time moves on screen.
+  const now = ref(Date.now());
+  const ticker = setInterval(() => now.value = Date.now(), 1000);
+  onUnmounted(() => clearInterval(ticker));
+
+  const clock = (ms) => {
+    const seconds = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  };
+  const elapsed = computed(() => p.value.songStartedAt
+    ? Math.min(current.value?.duration ?? 0, Math.max(0, now.value - p.value.songStartedAt)) : 0);
+  const progress = computed(() => current.value?.duration ? elapsed.value / current.value.duration : 0);
+
+  const play = (id) => call('play', {song: id});
+  const stopSong = () => call('stop');
 
   // The lower row's octave; the upper row is the next one. C4 is MIDI 60, as on a MIDI keyboard.
   const MIN_OCTAVE = 2;
@@ -162,13 +176,6 @@
     }
   };
 
-  const pickSound = (id) => {
-    sound.value = id;
-    if (!send({t: 'sound', s: id})) {
-      call('setSound', {sound: id});
-    }
-  };
-
   // ---------- The socket to the module ----------
 
   // closed: no socket · offline | connecting | ready: what the module says about the speaker.
@@ -203,9 +210,6 @@
         const message = JSON.parse(event.data);
         if (message.t === 'state') {
           status.value = message.status;
-          if (message.sound) {
-            sound.value = message.sound;
-          }
         }
       } catch {
         // Not ours.
@@ -386,7 +390,10 @@
   });
 
   const lcd = computed(() => {
-    const parts = [soundLabel.value, range.value];
+    if (current.value) {
+      return `▶ ${clock(elapsed.value)} · ${current.value.title}`;
+    }
+    const parts = ['Орган', range.value];
     if (lastNote.value !== null) {
       parts.push(`♪ ${noteName(lastNote.value)}`);
     }
@@ -426,10 +433,6 @@
             <button type="button" class="kb-btn kb-pedal" :class="{'is-on': pedal}" :aria-pressed="pedal" @click="setPedal(!pedal)">Педаль</button>
           </div>
 
-          <div class="kb-pads">
-            <button v-for="s in SOUNDS" :key="s.id" type="button" class="kb-pad" :class="{'is-sel': sound === s.id}" @click="pickSound(s.id)">{{ s.label }}</button>
-          </div>
-
           <div class="kb-keys" :class="{'is-idle': !ready}"
                @pointerdown="onPointerDown" @pointermove="onPointerMove"
                @pointerup="onPointerUp" @pointercancel="onPointerUp" @lostpointercapture="onPointerUp">
@@ -463,6 +466,30 @@
           Грає Pi через Bluetooth, тому звук запізнюється приблизно на 0,2 с.
           <span class="sp-desktop">З клавіатури комп'ютера: Z…M — нижня октава, Q…U — верхня, пробіл — педаль, − / = — октава.</span>
         </p>
+      </Section>
+
+      <Section name="Мелодії">
+        <ul role="list" class="field-list">
+          <li v-for="song in songs" :key="song.id" class="field-row">
+            <div class="min-w-0 flex-1">
+              <p class="truncate" :class="{'sp-song-on': current?.id === song.id}">{{ song.title }}</p>
+              <p class="truncate text-[13px] text-[color:var(--ink-3)]">
+                {{ song.author }} · {{ current?.id === song.id && p.songStartedAt ? `${clock(elapsed)} / ${clock(song.duration)}` : clock(song.duration) }}
+              </p>
+              <div v-if="current?.id === song.id" class="sp-progress">
+                <div class="sp-progress-fill" :style="{width: `${progress * 100}%`}"></div>
+              </div>
+            </div>
+            <button v-if="current?.id === song.id" type="button" class="sp-play is-on" aria-label="Зупинити" :disabled="busy" @click="stopSong">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button v-else type="button" class="sp-play" :aria-label="`Грати «${song.title}»`" :disabled="busy" @click="play(song.id)">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 h-4 w-4"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+            </button>
+          </li>
+        </ul>
+        <p v-if="current && !p.songStartedAt" class="sp-note">Готую колонку, мелодія почнеться за кілька секунд.</p>
+        <p v-else class="sp-note">Мелодію грає сам Pi: аркуш можна закрити, вона дограє до кінця.</p>
       </Section>
 
       <Section name="Колонка">
@@ -538,21 +565,6 @@
     color: #0a0a0d;
     box-shadow: 0 0 14px rgb(var(--accent-rgb) / 0.5);
   }
-  .kb-pads {
-    @apply mt-2 grid grid-cols-4 gap-1.5;
-  }
-  .kb-pad {
-    @apply truncate rounded-[10px] px-1 py-2 text-[12px] font-semibold transition duration-150 active:scale-95;
-    background: linear-gradient(180deg, #33333c, #25252c);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 0 rgba(0, 0, 0, 0.5);
-    color: var(--ink-2);
-  }
-  .kb-pad.is-sel {
-    background: rgb(var(--accent-rgb) / 0.9);
-    color: #0a0a0d;
-    box-shadow: 0 0 16px rgb(var(--accent-rgb) / 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  }
-
   .kb-keys {
     @apply relative mt-3;
     touch-action: none;
@@ -653,6 +665,32 @@
   .sp-level-value {
     @apply w-11 text-right text-[15px] tabular-nums;
     color: var(--ink-2);
+  }
+  .sp-song-on {
+    color: rgb(var(--accent-rgb));
+    font-weight: 600;
+  }
+  .sp-progress {
+    @apply mt-1.5 h-1 overflow-hidden rounded-full;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .sp-progress-fill {
+    @apply h-full rounded-full;
+    background: rgb(var(--accent-rgb));
+    transition: width 1s linear;
+  }
+  .sp-play {
+    @apply grid h-9 w-9 flex-none place-items-center rounded-full transition duration-150 active:scale-90;
+    background: rgb(var(--accent-rgb) / 0.2);
+    color: rgb(var(--accent-rgb));
+  }
+  .sp-play.is-on {
+    background: rgb(var(--accent-rgb));
+    color: #0a0a0d;
+    box-shadow: 0 0 14px rgb(var(--accent-rgb) / 0.45);
+  }
+  .sp-play:disabled {
+    @apply opacity-40;
   }
   .sp-btn {
     @apply w-full px-3 py-3 text-[15px] font-semibold;
