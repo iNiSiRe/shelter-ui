@@ -22,6 +22,7 @@ import WaterFilters from "./components/filters/water.vue";
 import UtilityMeters from "./components/meters/meters.vue";
 import Dishes from "./components/recipes/dishes.vue";
 import SynologyNas from "./components/synology/nas.vue";
+import BluetoothSpeaker from "./components/bluetooth/speaker.vue";
 
 const app = createApp(App);
 
@@ -46,6 +47,7 @@ app
     .component('utility_meters', UtilityMeters)
     .component('recipes', Dishes)
     .component('synology.nas', SynologyNas)
+    .component('bluetooth.speaker', BluetoothSpeaker)
 ;
 
 app.mount('#app')
