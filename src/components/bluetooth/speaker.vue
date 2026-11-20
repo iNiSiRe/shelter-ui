@@ -64,6 +64,9 @@
     await call('setVolume', {volume});
     dragVolume.value = null;
   };
+  // At the top of the sheet whenever the speaker can be turned up or down.
+  const hasVolume = computed(() => connected.value && Number.isFinite(p.value.volume));
+  const shownVolume = computed(() => dragVolume.value ?? p.value.volume);
 
   // ---------- The keyboard ----------
 
@@ -593,8 +596,9 @@
     </template>
 
     <template #extended>
-      <Section v-if="nowTrack">
+      <Section v-if="nowTrack || hasVolume">
         <div class="sp-now">
+          <template v-if="nowTrack">
           <div class="flex items-start gap-3">
             <div class="min-w-0 flex-1">
               <p class="sp-now-title">{{ nowTrack.title }}</p>
@@ -635,6 +639,17 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H19.5M16.5 3.5l3 3-3 3M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4.5M7.5 20.5l-3-3 3-3"/></svg>
               <span v-if="repeatMode === 'one'" class="sp-mode-one">1</span>
             </button>
+          </div>
+          </template>
+
+          <div v-if="hasVolume" class="sp-volume" :class="{'mt-2': nowTrack}">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 flex-none" aria-hidden="true"><path d="M4 9.5h3.2L11.6 5.6A.9.9 0 0 1 13 6.3v11.4a.9.9 0 0 1-1.4.7L7.2 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z"/></svg>
+            <input type="range" class="sp-scrub !mt-0" min="0" max="100" step="1" aria-label="Гучність"
+                   :value="shownVolume" :style="{'--fill': `${shownVolume}%`}"
+                   @input="dragVolume = $event.target.valueAsNumber"
+                   @change="setVolume($event.target.valueAsNumber)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" class="h-[18px] w-[18px] flex-none" aria-hidden="true"><path d="M3.5 9.5h3.2L11 5.7a.8.8 0 0 1 1.3.6v11.4a.8.8 0 0 1-1.3.6l-4.3-3.8H3.5z" fill="currentColor" stroke="none"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.3 6.6a7.6 7.6 0 0 1 0 10.8"/></svg>
+            <span class="sp-volume-value">{{ shownVolume }}%</span>
           </div>
         </div>
       </Section>
@@ -790,16 +805,6 @@
               <span class="pill-dot"></span>{{ connecting ? 'Підключаю…' : connected ? 'Підключена' : 'Не підключена' }}
             </span>
           </Item>
-          <li v-if="connected && Number.isFinite(p.volume)" class="field-row !block">
-            <span class="field-label">Гучність</span>
-            <div class="sp-level">
-              <input type="range" min="0" max="100" step="1" aria-label="Гучність"
-                     :value="dragVolume ?? p.volume"
-                     @input="dragVolume = $event.target.valueAsNumber"
-                     @change="setVolume($event.target.valueAsNumber)">
-              <span class="sp-level-value">{{ dragVolume ?? p.volume }}%</span>
-            </div>
-          </li>
           <Item v-if="Number.isFinite(p.battery)" label="Батарея">
             {{ p.battery }}%
           </Item>
@@ -946,17 +951,6 @@
       display: inline;
     }
   }
-  .sp-level {
-    @apply mt-2 flex items-center gap-3;
-  }
-  .sp-level input {
-    @apply h-1.5 flex-1 cursor-pointer;
-    accent-color: rgb(var(--accent-rgb));
-  }
-  .sp-level-value {
-    @apply w-11 text-right text-[15px] tabular-nums;
-    color: var(--ink-2);
-  }
   .sp-song-on {
     color: rgb(var(--accent-rgb));
     font-weight: 600;
@@ -1034,6 +1028,14 @@
   }
   .sp-transport {
     @apply mt-1 flex items-center justify-between px-1;
+  }
+  .sp-volume {
+    @apply flex items-center gap-2.5;
+    color: var(--ink-3);
+  }
+  .sp-volume-value {
+    @apply w-10 flex-none text-right text-[13px] tabular-nums;
+    color: var(--ink-2);
   }
   .sp-mode {
     @apply relative grid h-9 w-9 place-items-center rounded-full transition duration-150 active:scale-90;
