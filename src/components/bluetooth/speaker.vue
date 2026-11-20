@@ -17,6 +17,12 @@
   const connecting = computed(() => p.value.connecting === true);
 
   const tileStatus = computed(() => {
+    if (music.value) {
+      if (music.value.state === 'waiting') {
+        return 'Готую колонку…';
+      }
+      return `${music.value.state === 'paused' ? 'Пауза' : 'Грає'} · ${nowTrack.value?.title ?? 'трек'}`;
+    }
     if (current.value) {
       return p.value.songStartedAt ? `Грає · ${current.value.title}` : 'Готую мелодію…';
     }
@@ -81,6 +87,164 @@
 
   const play = (id) => call('play', {song: id});
   const stopSong = () => call('stop');
+
+  // ---------- My music: files uploaded from here, played by the Pi ----------
+
+  const tracks = computed(() => Array.isArray(p.value.tracks) ? p.value.tracks : []);
+  // {id, state: waiting | playing | paused, offset, startedAt} or null
+  const music = computed(() => p.value.track ?? null);
+  const nowTrack = computed(() => tracks.value.find(track => track.id === music.value?.id) ?? null);
+  const musicOn = computed(() => music.value !== null && music.value.state !== 'paused');
+
+  // [ms] Where the track is: the Pi tells when its 0:00 sounded, the card counts on from there.
+  const position = computed(() => {
+    const m = music.value;
+    if (!m || !nowTrack.value) {
+      return 0;
+    }
+    const at = m.state === 'playing' && m.startedAt ? now.value - m.startedAt : m.offset;
+    return Math.min(nowTrack.value.duration, Math.max(0, at));
+  });
+  const dragPosition = ref(null);
+  const shownPosition = computed(() => dragPosition.value ?? position.value);
+
+  const playTrack = (track) => {
+    if (track.id !== music.value?.id) {
+      return call('playTrack', {id: track.id});
+    }
+    return call(music.value.state === 'paused' ? 'resumeTrack' : 'pauseTrack');
+  };
+  const playPause = () => call(musicOn.value ? 'pauseTrack' : 'resumeTrack');
+  const seek = async (at) => {
+    await call('seekTrack', {at});
+    dragPosition.value = null;
+  };
+
+  // Delete as on an iPhone: «Змінити», a red minus, then the red «Видалити».
+  const editing = ref(false);
+  const armed = ref(null);
+  const toggleEditing = () => {
+    editing.value = !editing.value;
+    armed.value = null;
+  };
+  const removeTrack = async (track) => {
+    armed.value = null;
+    await call('deleteTrack', {id: track.id});
+    if (tracks.value.length <= 1) {
+      editing.value = false;
+    }
+  };
+
+  const size = (bytes) => {
+    if (!Number.isFinite(bytes)) {
+      return '';
+    }
+    if (bytes >= 1024 ** 3) {
+      return `${String(Math.round(bytes / 1024 ** 3 * 10) / 10).replace('.', ',')} ГБ`;
+    }
+    const mb = bytes / 1024 ** 2;
+    return `${String(mb < 10 ? Math.round(mb * 10) / 10 : Math.round(mb)).replace('.', ',')} МБ`;
+  };
+  const usage = computed(() => {
+    const library = p.value.library;
+    return library ? `Зайнято ${size(library.used)} з ${size(library.limit)}.` : '';
+  });
+
+  // ---------- Uploads: one file at a time, straight to the Pi's port beside the keys ----------
+
+  const fileInput = ref(null);
+  // {key, file, name, size, state: queued | sending | processing | done | failed, progress, error}
+  const uploads = ref([]);
+  let uploadKey = 0;
+  let pumping = false;
+
+  const uploadUrl = (name) => {
+    const host = new URL(Registry.baseUrl).hostname;
+    return `http://${host}:${p.value.keysPort ?? 9091}/tracks?name=${encodeURIComponent(name)}`;
+  };
+
+  const pickFiles = () => fileInput.value?.click();
+
+  const onFiles = (event) => {
+    // An album picked at once goes in by its numbers: «2 …» before «10 …».
+    const files = [...(event.target.files ?? [])]
+      .sort((a, b) => a.name.localeCompare(b.name, 'uk', {numeric: true}));
+    event.target.value = '';
+    for (const file of files) {
+      uploads.value.push({key: ++uploadKey, file, name: file.name, size: file.size, state: 'queued', progress: 0, error: null});
+    }
+    pump();
+  };
+
+  const sendFile = (item) => new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', uploadUrl(item.name));
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        item.progress = event.loaded / event.total;
+      }
+    };
+    // All of it is on the Pi: it reads the file and measures its loudness now.
+    xhr.upload.onload = () => {
+      item.progress = 1;
+      item.state = 'processing';
+    };
+    xhr.onload = () => {
+      let body = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        // Not the module's answer.
+      }
+      resolve(xhr.status === 200 ? null : body?.error ?? `Pi відповів ${xhr.status}`);
+    };
+    xhr.onerror = () => resolve("зв'язок із Pi обірвався");
+    xhr.send(item.file);
+  });
+
+  const pump = async () => {
+    if (pumping) {
+      return;
+    }
+    pumping = true;
+    try {
+      for (let item = uploads.value.find(u => u.state === 'queued'); item; item = uploads.value.find(u => u.state === 'queued')) {
+        const library = p.value.library;
+        let error = null;
+        if (library && item.size > library.fileLimit) {
+          error = `файл більший за ${size(library.fileLimit)}`;
+        } else if (library && library.used + item.size > library.limit) {
+          error = 'місце для музики закінчилось: видаліть щось зі списку';
+        } else {
+          item.state = 'sending';
+          error = await sendFile(item);
+        }
+        item.state = error ? 'failed' : 'done';
+        item.error = error;
+      }
+    } finally {
+      pumping = false;
+    }
+    setTimeout(() => uploads.value = uploads.value.filter(u => u.state !== 'done'), 1500);
+  };
+
+  const dismiss = (item) => uploads.value = uploads.value.filter(u => u !== item);
+
+  const uploadStatus = (item) => {
+    switch (item.state) {
+      case 'queued':
+        return 'У черзі';
+      case 'sending':
+        return `Завантажую · ${Math.floor(item.progress * 100)}%`;
+      case 'processing':
+        return 'Вирівнюю гучність…';
+      case 'done':
+        return 'Додано';
+      default:
+        return item.error;
+    }
+  };
 
   // The lower row's octave; the upper row is the next one. C4 is MIDI 60, as on a MIDI keyboard.
   const MIN_OCTAVE = 2;
@@ -420,6 +584,43 @@
     </template>
 
     <template #extended>
+      <Section v-if="nowTrack">
+        <div class="sp-now">
+          <div class="flex items-start gap-3">
+            <div class="min-w-0 flex-1">
+              <p class="sp-now-title">{{ nowTrack.title }}</p>
+              <p class="sp-now-artist">{{ music.state === 'waiting' ? 'Готую колонку…' : nowTrack.artist ?? 'Моя музика' }}</p>
+            </div>
+            <button type="button" class="sp-close" aria-label="Зупинити музику" :disabled="busy" @click="stopSong">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-3.5 w-3.5"><path d="M7 7l10 10M17 7L7 17"/></svg>
+            </button>
+          </div>
+
+          <input type="range" class="sp-scrub" min="0" :max="nowTrack.duration" step="1000" aria-label="Позиція в треку"
+                 :value="shownPosition" :style="{'--fill': `${nowTrack.duration ? shownPosition / nowTrack.duration * 100 : 0}%`}"
+                 @input="dragPosition = $event.target.valueAsNumber"
+                 @change="seek($event.target.valueAsNumber)">
+          <div class="sp-times">
+            <span>{{ clock(shownPosition) }}</span>
+            <span>−{{ clock(nowTrack.duration - shownPosition) }}</span>
+          </div>
+
+          <div class="sp-transport">
+            <button type="button" class="sp-skip" aria-label="Попередній трек" :disabled="busy" @click="call('previousTrack')">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6"><rect x="4" y="5" width="2.6" height="14" rx="1"/><path d="M19.5 6.2v11.6a1 1 0 0 1-1.55.83L9.6 13.03a1.2 1.2 0 0 1 0-2.06l8.35-5.6a1 1 0 0 1 1.55.83z"/></svg>
+            </button>
+            <button type="button" class="sp-main" :aria-label="musicOn ? 'Пауза' : 'Грати'" :disabled="busy" @click="playPause">
+              <span v-if="music.state === 'waiting'" class="kb-spinner sp-main-spinner"></span>
+              <svg v-else-if="musicOn" viewBox="0 0 24 24" fill="currentColor" class="h-7 w-7"><rect x="6" y="5" width="4.2" height="14" rx="1.2"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.2"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="ml-1 h-7 w-7"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+            </button>
+            <button type="button" class="sp-skip" aria-label="Наступний трек" :disabled="busy" @click="call('nextTrack')">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6"><rect x="17.4" y="5" width="2.6" height="14" rx="1"/><path d="M4.5 6.2v11.6a1 1 0 0 0 1.55.83l8.35-5.6a1.2 1.2 0 0 0 0-2.06L6.05 5.37A1 1 0 0 0 4.5 6.2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </Section>
+
       <Section>
         <div class="kb" @contextmenu.prevent>
           <div class="kb-top">
@@ -466,6 +667,67 @@
           Грає Pi через Bluetooth, тому звук запізнюється приблизно на 0,2 с.
           <span class="sp-desktop">З клавіатури комп'ютера: Z…M — нижня октава, Q…U — верхня, пробіл — педаль, − / = — октава.</span>
         </p>
+      </Section>
+
+      <Section>
+        <div class="sp-head">
+          <h3 class="section-title !mb-0">Моя музика</h3>
+          <button v-if="tracks.length" type="button" class="sp-edit" @click="toggleEditing">{{ editing ? 'Готово' : 'Змінити' }}</button>
+        </div>
+
+        <ul v-if="tracks.length" role="list" class="field-list">
+          <li v-for="track in tracks" :key="track.id" class="field-row sp-track" :class="{'is-editing': editing}"
+              @click="editing ? null : playTrack(track)">
+            <button v-if="editing" type="button" class="sp-minus" :aria-label="`Видалити «${track.title}»?`" @click.stop="armed = armed === track.id ? null : track.id">
+              <svg viewBox="0 0 24 24" class="h-[22px] w-[22px]"><circle cx="12" cy="12" r="10" fill="#ff453a"/><path d="M7.5 12h9" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+            </button>
+            <div class="min-w-0 flex-1">
+              <p class="truncate" :class="{'sp-song-on': music?.id === track.id}">{{ track.title }}</p>
+              <p class="truncate text-[13px] text-[color:var(--ink-3)]">
+                {{ [track.artist, clock(track.duration)].filter(Boolean).join(' · ') }}
+              </p>
+            </div>
+            <button v-if="editing && armed === track.id" type="button" class="sp-delete" :disabled="busy" @click.stop="removeTrack(track)">Видалити</button>
+            <template v-else-if="!editing">
+              <span v-if="music?.id === track.id && music.state === 'playing'" class="sp-bars" aria-label="Грає"><i></i><i></i><i></i></span>
+              <button v-else type="button" class="sp-play" :class="{'is-on': music?.id === track.id}" :aria-label="`Грати «${track.title}»`" :disabled="busy" @click.stop="playTrack(track)">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 h-4 w-4"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+              </button>
+            </template>
+          </li>
+        </ul>
+        <p v-else class="sp-empty">Тут поки порожньо. Додайте свої треки з телефона чи комп'ютера, і Pi гратиме їх на колонці.</p>
+
+        <ul v-if="uploads.length" role="list" class="field-list mt-3">
+          <li v-for="item in uploads" :key="item.key" class="field-row !block">
+            <div class="flex items-center gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[15px]">{{ item.name }}</p>
+                <p class="text-[13px]" :class="item.state === 'failed' ? 'text-[#ff6961]' : 'truncate text-[color:var(--ink-3)]'">{{ uploadStatus(item) }}</p>
+              </div>
+              <span v-if="item.state === 'processing'" class="kb-spinner sp-row-spinner"></span>
+              <button v-if="item.state === 'failed'" type="button" class="sp-close" aria-label="Прибрати" @click="dismiss(item)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="h-3.5 w-3.5"><path d="M7 7l10 10M17 7L7 17"/></svg>
+              </button>
+            </div>
+            <div v-if="item.state === 'sending' || item.state === 'processing'" class="sp-progress">
+              <div class="sp-progress-fill" :style="{width: `${item.progress * 100}%`}"></div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="mt-3">
+          <button type="button" class="ctl-btn sp-btn sp-apply" @click="pickFiles">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" class="mr-1.5 h-4 w-4"><path d="M12 5v14M5 12h14"/></svg>
+            Додати треки
+          </button>
+          <input ref="fileInput" type="file" multiple class="hidden"
+                 accept="audio/*,.mp3,.m4a,.aac,.flac,.ogg,.oga,.opus,.wav,.aif,.aiff" @change="onFiles">
+          <p class="sp-note">
+            {{ usage }} Найкраще MP3 або M4A; FLAC, OGG, Opus і WAV теж підійдуть, до {{ size(p.library?.fileLimit ?? 314572800) }} на файл.
+            Гучність треків Pi вирівнює сам.
+          </p>
+        </div>
       </Section>
 
       <Section name="Мелодії">
@@ -694,6 +956,132 @@
   }
   .sp-btn {
     @apply w-full px-3 py-3 text-[15px] font-semibold;
+  }
+
+  /* ---------- Now playing ---------- */
+  .sp-now {
+    @apply rounded-[14px] px-4 pb-3 pt-3.5;
+    background: var(--group);
+  }
+  .sp-now-title {
+    @apply truncate text-[17px] font-semibold;
+    color: var(--ink);
+  }
+  .sp-now-artist {
+    @apply truncate text-[15px];
+    color: var(--ink-2);
+  }
+  .sp-close {
+    @apply grid h-7 w-7 flex-none place-items-center rounded-full transition duration-150 active:scale-90;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ink-2);
+  }
+  .sp-close:disabled {
+    @apply opacity-40;
+  }
+  .sp-scrub {
+    @apply mt-4 block h-5 w-full cursor-pointer appearance-none bg-transparent;
+  }
+  .sp-scrub::-webkit-slider-runnable-track {
+    @apply h-1 rounded-full;
+    background: linear-gradient(90deg, rgb(var(--accent-rgb)) var(--fill), rgba(255, 255, 255, 0.16) var(--fill));
+  }
+  .sp-scrub::-moz-range-track {
+    @apply h-1 rounded-full;
+    background: linear-gradient(90deg, rgb(var(--accent-rgb)) var(--fill), rgba(255, 255, 255, 0.16) var(--fill));
+  }
+  .sp-scrub::-webkit-slider-thumb {
+    @apply -mt-[5px] h-3.5 w-3.5 appearance-none rounded-full;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+  .sp-scrub::-moz-range-thumb {
+    @apply h-3.5 w-3.5 rounded-full border-0;
+    background: #fff;
+  }
+  .sp-times {
+    @apply mt-0.5 flex justify-between text-[12px] tabular-nums;
+    color: var(--ink-3);
+  }
+  .sp-transport {
+    @apply mt-1 flex items-center justify-center gap-7;
+  }
+  .sp-skip {
+    @apply grid h-11 w-11 place-items-center rounded-full transition duration-150 active:scale-90;
+    color: var(--ink);
+  }
+  .sp-main {
+    @apply grid h-14 w-14 place-items-center rounded-full transition duration-150 active:scale-90;
+    background: rgb(var(--accent-rgb));
+    color: #0a0a0d;
+    box-shadow: 0 0 18px rgb(var(--accent-rgb) / 0.4);
+  }
+  .sp-skip:disabled, .sp-main:disabled {
+    @apply opacity-50;
+  }
+  .sp-main-spinner {
+    border-color: rgba(0, 0, 0, 0.2);
+    border-top-color: #0a0a0d;
+  }
+
+  /* ---------- My music ---------- */
+  .sp-head {
+    @apply mb-1.5 flex items-baseline justify-between pr-4;
+  }
+  .sp-edit {
+    @apply text-[15px];
+    color: rgb(var(--accent-rgb));
+  }
+  .sp-track {
+    @apply cursor-pointer;
+  }
+  .sp-track.is-editing {
+    @apply cursor-default gap-3;
+  }
+  .sp-minus {
+    @apply -ml-1 flex-none transition duration-150 active:scale-90;
+  }
+  .sp-delete {
+    @apply flex-none rounded-[9px] px-3 py-1.5 text-[14px] font-semibold;
+    background: #ff453a;
+    color: #fff;
+  }
+  .sp-delete:disabled {
+    @apply opacity-50;
+  }
+  .sp-bars {
+    @apply flex h-9 w-9 flex-none items-end justify-center gap-[3px] pb-[11px];
+  }
+  .sp-bars i {
+    @apply block w-[3px] rounded-full;
+    height: 14px;
+    background: rgb(var(--accent-rgb));
+    transform-origin: bottom;
+    animation: sp-bar 0.9s ease-in-out infinite;
+  }
+  .sp-bars i:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+  .sp-bars i:nth-child(3) {
+    animation-delay: -0.6s;
+  }
+  @keyframes sp-bar {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sp-bars i {
+      animation: none;
+      transform: scaleY(0.7);
+    }
+  }
+  .sp-empty {
+    @apply rounded-[14px] px-4 py-4 text-[15px] leading-[1.4];
+    background: var(--group);
+    color: var(--ink-2);
+  }
+  .sp-row-spinner {
+    @apply h-5 w-5 flex-none;
   }
   .sp-btn:disabled {
     @apply opacity-40;
