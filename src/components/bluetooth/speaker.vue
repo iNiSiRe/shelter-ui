@@ -115,6 +115,15 @@
     return call(music.value.state === 'paused' ? 'resumeTrack' : 'pauseTrack');
   };
   const playPause = () => call(musicOn.value ? 'pauseTrack' : 'resumeTrack');
+
+  // As on a phone: repeat goes off → all → one, shuffle on or off; the Pi keeps both.
+  const repeatMode = computed(() => p.value.repeat ?? 'off');
+  const shuffleOn = computed(() => p.value.shuffle === true);
+  const NEXT_REPEAT = {off: 'all', all: 'one', one: 'off'};
+  const REPEAT_LABELS = {off: 'Повтор вимкнено', all: 'Повтор усіх треків', one: 'Повтор цього треку'};
+  const cycleRepeat = () => call('setPlayMode', {repeat: NEXT_REPEAT[repeatMode.value] ?? 'off'});
+  const toggleShuffle = () => call('setPlayMode', {shuffle: !shuffleOn.value});
+  const playAll = (shuffle) => call('playAll', {shuffle});
   const seek = async (at) => {
     await call('seekTrack', {at});
     dragPosition.value = null;
@@ -606,6 +615,10 @@
           </div>
 
           <div class="sp-transport">
+            <button type="button" class="sp-mode" :class="{'is-on': shuffleOn}" :aria-pressed="shuffleOn"
+                    :aria-label="shuffleOn ? 'Перемішування увімкнено' : 'Перемішування вимкнено'" :disabled="busy" @click="toggleShuffle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M3 7h3.2c1.9 0 3.1.9 4.1 2.6l2.9 4.8c1 1.7 2.2 2.6 4.1 2.6H20M3 17h3.2c1.3 0 2.3-.4 3.1-1.2M14.6 8.2c.8-.8 1.8-1.2 3.1-1.2H20M17.5 4.5 20 7l-2.5 2.5M17.5 14.5 20 17l-2.5 2.5"/></svg>
+            </button>
             <button type="button" class="sp-skip" aria-label="Попередній трек" :disabled="busy" @click="call('previousTrack')">
               <svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6"><rect x="4" y="5" width="2.6" height="14" rx="1"/><path d="M19.5 6.2v11.6a1 1 0 0 1-1.55.83L9.6 13.03a1.2 1.2 0 0 1 0-2.06l8.35-5.6a1 1 0 0 1 1.55.83z"/></svg>
             </button>
@@ -616,6 +629,11 @@
             </button>
             <button type="button" class="sp-skip" aria-label="Наступний трек" :disabled="busy" @click="call('nextTrack')">
               <svg viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6"><rect x="17.4" y="5" width="2.6" height="14" rx="1"/><path d="M4.5 6.2v11.6a1 1 0 0 0 1.55.83l8.35-5.6a1.2 1.2 0 0 0 0-2.06L6.05 5.37A1 1 0 0 0 4.5 6.2z"/></svg>
+            </button>
+            <button type="button" class="sp-mode" :class="{'is-on': repeatMode !== 'off'}" :aria-pressed="repeatMode !== 'off'"
+                    :aria-label="REPEAT_LABELS[repeatMode]" :title="REPEAT_LABELS[repeatMode]" :disabled="busy" @click="cycleRepeat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H19.5M16.5 3.5l3 3-3 3M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4.5M7.5 20.5l-3-3 3-3"/></svg>
+              <span v-if="repeatMode === 'one'" class="sp-mode-one">1</span>
             </button>
           </div>
         </div>
@@ -673,6 +691,17 @@
         <div class="sp-head">
           <h3 class="section-title !mb-0">Моя музика</h3>
           <button v-if="tracks.length" type="button" class="sp-edit" @click="toggleEditing">{{ editing ? 'Готово' : 'Змінити' }}</button>
+        </div>
+
+        <div v-if="tracks.length && !editing" class="sp-playall">
+          <button type="button" class="ctl-btn sp-pill" :disabled="busy" @click="playAll(false)">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="mr-1.5 h-4 w-4"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+            Грати все
+          </button>
+          <button type="button" class="ctl-btn sp-pill" :disabled="busy" @click="playAll(true)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5 h-4 w-4"><path d="M3 7h3.2c1.9 0 3.1.9 4.1 2.6l2.9 4.8c1 1.7 2.2 2.6 4.1 2.6H20M3 17h3.2c1.3 0 2.3-.4 3.1-1.2M14.6 8.2c.8-.8 1.8-1.2 3.1-1.2H20M17.5 4.5 20 7l-2.5 2.5M17.5 14.5 20 17l-2.5 2.5"/></svg>
+            Перемішати
+          </button>
         </div>
 
         <ul v-if="tracks.length" role="list" class="field-list">
@@ -1004,7 +1033,34 @@
     color: var(--ink-3);
   }
   .sp-transport {
-    @apply mt-1 flex items-center justify-center gap-7;
+    @apply mt-1 flex items-center justify-between px-1;
+  }
+  .sp-mode {
+    @apply relative grid h-9 w-9 place-items-center rounded-full transition duration-150 active:scale-90;
+    color: var(--ink-3);
+  }
+  .sp-mode.is-on {
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: rgb(var(--accent-rgb));
+  }
+  .sp-mode:disabled {
+    @apply opacity-50;
+  }
+  .sp-mode-one {
+    @apply absolute right-0 top-0 grid h-[15px] min-w-[15px] place-items-center rounded-full px-[3px] text-[10px] font-bold leading-none;
+    background: rgb(var(--accent-rgb));
+    color: #0a0a0d;
+  }
+  .sp-playall {
+    @apply mb-2 grid grid-cols-2 gap-2;
+  }
+  .sp-pill {
+    @apply px-3 py-2.5 text-[15px] font-semibold;
+    background: var(--group);
+    color: rgb(var(--accent-rgb));
+  }
+  .sp-pill:disabled {
+    @apply opacity-50;
   }
   .sp-skip {
     @apply grid h-11 w-11 place-items-center rounded-full transition duration-150 active:scale-90;
