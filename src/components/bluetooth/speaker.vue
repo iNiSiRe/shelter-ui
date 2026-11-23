@@ -32,6 +32,10 @@
     if (!connected.value) {
       return 'Не підключена';
     }
+    // The charge matters more on the tile than the volume, which sits at the top of the sheet.
+    if (Number.isFinite(p.value.battery)) {
+      return `Підключена · заряд ${p.value.battery}%`;
+    }
     return Number.isFinite(p.value.volume) ? `Підключена · ${p.value.volume}%` : 'Підключена';
   });
 
