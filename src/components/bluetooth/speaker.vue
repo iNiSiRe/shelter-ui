@@ -128,6 +128,7 @@
   const shuffleOn = computed(() => p.value.shuffle === true);
   const NEXT_REPEAT = {off: 'all', all: 'one', one: 'off'};
   const REPEAT_LABELS = {off: 'Повтор вимкнено', all: 'Повтор усіх треків', one: 'Повтор цього треку'};
+  const SONG_REPEAT_LABELS = {off: 'Без повтору', all: 'Усі мелодії по колу', one: 'Одна мелодія по колу'};
   const cycleRepeat = () => call('setPlayMode', {repeat: NEXT_REPEAT[repeatMode.value] ?? 'off'});
   const toggleShuffle = () => call('setPlayMode', {shuffle: !shuffleOn.value});
   const playAll = (shuffle) => call('playAll', {shuffle});
@@ -780,6 +781,17 @@
 
       <Section name="Мелодії">
         <ul role="list" class="field-list">
+          <li class="field-row">
+            <div class="min-w-0 flex-1">
+              <p class="truncate">Повтор</p>
+              <p class="truncate text-[13px] text-[color:var(--ink-3)]">{{ SONG_REPEAT_LABELS[repeatMode] }}</p>
+            </div>
+            <button type="button" class="sp-mode" :class="{'is-on': repeatMode !== 'off'}" :aria-pressed="repeatMode !== 'off'"
+                    :aria-label="`Повтор мелодій: ${SONG_REPEAT_LABELS[repeatMode]}`" :disabled="busy" @click="cycleRepeat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H19.5M16.5 3.5l3 3-3 3M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4.5M7.5 20.5l-3-3 3-3"/></svg>
+              <span v-if="repeatMode === 'one'" class="sp-mode-one">1</span>
+            </button>
+          </li>
           <li v-for="song in songs" :key="song.id" class="field-row">
             <div class="min-w-0 flex-1">
               <p class="truncate" :class="{'sp-song-on': current?.id === song.id}">{{ song.title }}</p>
@@ -799,7 +811,10 @@
           </li>
         </ul>
         <p v-if="current && !p.songStartedAt" class="sp-note">Готую колонку, мелодія почнеться за кілька секунд.</p>
-        <p v-else class="sp-note">Мелодію грає сам Pi: аркуш можна закрити, вона дограє до кінця.</p>
+        <p v-else class="sp-note">
+          Мелодію грає сам Pi: аркуш можна закрити, {{ repeatMode === 'off' ? 'вона дограє до кінця' : 'вона гратиме по колу, доки не зупините' }}.
+          Повтор спільний з «Моєю музикою».
+        </p>
       </Section>
 
       <Section name="Колонка">
