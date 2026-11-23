@@ -23,9 +23,6 @@
       }
       return `${music.value.state === 'paused' ? 'Пауза' : 'Грає'} · ${nowTrack.value?.title ?? 'трек'}`;
     }
-    if (current.value) {
-      return p.value.songStartedAt ? `Грає · ${current.value.title}` : 'Готую мелодію…';
-    }
     if (connecting.value) {
       return 'Підключаю…';
     }
@@ -77,7 +74,8 @@
   // ---------- Tunes: five minutes each, played by the Pi on its own ----------
 
   const songs = computed(() => Array.isArray(p.value.songs) ? p.value.songs : []);
-  const current = computed(() => songs.value.find(song => song.id === p.value.song) ?? null);
+  // The tune in the player, if it is a tune that is there.
+  const current = computed(() => p.value.track ? null : songs.value.find(song => song.id === p.value.tune?.id) ?? null);
 
   // Ticks while the card lives, so a tune's time moves on screen.
   const now = ref(Date.now());
@@ -88,19 +86,27 @@
     const seconds = Math.max(0, Math.floor(ms / 1000));
     return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   };
-  const elapsed = computed(() => p.value.songStartedAt
-    ? Math.min(current.value?.duration ?? 0, Math.max(0, now.value - p.value.songStartedAt)) : 0);
-  const progress = computed(() => current.value?.duration ? elapsed.value / current.value.duration : 0);
-
-  const play = (id) => call('play', {song: id});
+  // A tap on a tune: play it, or pause and go on when it is the one in the player.
+  const playSong = (song) => {
+    if (song.id !== current.value?.id) {
+      return call('play', {song: song.id});
+    }
+    return call(music.value.state === 'paused' ? 'resumeTrack' : 'pauseTrack');
+  };
   const stopSong = () => call('stop');
 
   // ---------- My music: files uploaded from here, played by the Pi ----------
 
   const tracks = computed(() => Array.isArray(p.value.tracks) ? p.value.tracks : []);
   // {id, state: waiting | playing | paused, offset, startedAt} or null
-  const music = computed(() => p.value.track ?? null);
-  const nowTrack = computed(() => tracks.value.find(track => track.id === music.value?.id) ?? null);
+  // One player for both: an uploaded track, or a tune of the organ in a track's own terms.
+  const music = computed(() => p.value.track ?? (current.value ? p.value.tune : null) ?? null);
+  const nowTrack = computed(() => {
+    if (current.value) {
+      return {id: current.value.id, title: current.value.title, artist: `${current.value.author} · орган`, duration: current.value.duration};
+    }
+    return tracks.value.find(track => track.id === p.value.track?.id) ?? null;
+  });
   const musicOn = computed(() => music.value !== null && music.value.state !== 'paused');
 
   // [ms] Where the track is: the Pi tells when its 0:00 sounded, the card counts on from there.
@@ -116,7 +122,7 @@
   const shownPosition = computed(() => dragPosition.value ?? position.value);
 
   const playTrack = (track) => {
-    if (track.id !== music.value?.id) {
+    if (track.id !== p.value.track?.id) {
       return call('playTrack', {id: track.id});
     }
     return call(music.value.state === 'paused' ? 'resumeTrack' : 'pauseTrack');
@@ -127,8 +133,7 @@
   const repeatMode = computed(() => p.value.repeat ?? 'off');
   const shuffleOn = computed(() => p.value.shuffle === true);
   const NEXT_REPEAT = {off: 'all', all: 'one', one: 'off'};
-  const REPEAT_LABELS = {off: 'Повтор вимкнено', all: 'Повтор усіх треків', one: 'Повтор цього треку'};
-  const SONG_REPEAT_LABELS = {off: 'Без повтору', all: 'Усі мелодії по колу', one: 'Одна мелодія по колу'};
+  const REPEAT_LABELS = {off: 'Повтор вимкнено', all: 'Повтор усього списку', one: 'Повтор цього треку'};
   const cycleRepeat = () => call('setPlayMode', {repeat: NEXT_REPEAT[repeatMode.value] ?? 'off'});
   const toggleShuffle = () => call('setPlayMode', {shuffle: !shuffleOn.value});
   const playAll = (shuffle) => call('playAll', {shuffle});
@@ -572,7 +577,7 @@
 
   const lcd = computed(() => {
     if (current.value) {
-      return `▶ ${clock(elapsed.value)} · ${current.value.title}`;
+      return `${music.value?.state === 'paused' ? '❚❚' : '▶'} ${clock(position.value)} · ${current.value.title}`;
     }
     const parts = ['Орган', range.value];
     if (lastNote.value !== null) {
@@ -731,15 +736,15 @@
               <svg viewBox="0 0 24 24" class="h-[22px] w-[22px]"><circle cx="12" cy="12" r="10" fill="#ff453a"/><path d="M7.5 12h9" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
             </button>
             <div class="min-w-0 flex-1">
-              <p class="truncate" :class="{'sp-song-on': music?.id === track.id}">{{ track.title }}</p>
+              <p class="truncate" :class="{'sp-song-on': p.track?.id === track.id}">{{ track.title }}</p>
               <p class="truncate text-[13px] text-[color:var(--ink-3)]">
                 {{ [track.artist, clock(track.duration)].filter(Boolean).join(' · ') }}
               </p>
             </div>
             <button v-if="editing && armed === track.id" type="button" class="sp-delete" :disabled="busy" @click.stop="removeTrack(track)">Видалити</button>
             <template v-else-if="!editing">
-              <span v-if="music?.id === track.id && music.state === 'playing'" class="sp-bars" aria-label="Грає"><i></i><i></i><i></i></span>
-              <button v-else type="button" class="sp-play" :class="{'is-on': music?.id === track.id}" :aria-label="`Грати «${track.title}»`" :disabled="busy" @click.stop="playTrack(track)">
+              <span v-if="p.track?.id === track.id && music.state === 'playing'" class="sp-bars" aria-label="Грає"><i></i><i></i><i></i></span>
+              <button v-else type="button" class="sp-play" :class="{'is-on': p.track?.id === track.id}" :aria-label="`Грати «${track.title}»`" :disabled="busy" @click.stop="playTrack(track)">
                 <svg viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 h-4 w-4"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
               </button>
             </template>
@@ -781,40 +786,18 @@
 
       <Section name="Мелодії">
         <ul role="list" class="field-list">
-          <li class="field-row">
-            <div class="min-w-0 flex-1">
-              <p class="truncate">Повтор</p>
-              <p class="truncate text-[13px] text-[color:var(--ink-3)]">{{ SONG_REPEAT_LABELS[repeatMode] }}</p>
-            </div>
-            <button type="button" class="sp-mode" :class="{'is-on': repeatMode !== 'off'}" :aria-pressed="repeatMode !== 'off'"
-                    :aria-label="`Повтор мелодій: ${SONG_REPEAT_LABELS[repeatMode]}`" :disabled="busy" @click="cycleRepeat">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H19.5M16.5 3.5l3 3-3 3M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4.5M7.5 20.5l-3-3 3-3"/></svg>
-              <span v-if="repeatMode === 'one'" class="sp-mode-one">1</span>
-            </button>
-          </li>
-          <li v-for="song in songs" :key="song.id" class="field-row">
+          <li v-for="song in songs" :key="song.id" class="field-row sp-track" @click="playSong(song)">
             <div class="min-w-0 flex-1">
               <p class="truncate" :class="{'sp-song-on': current?.id === song.id}">{{ song.title }}</p>
-              <p class="truncate text-[13px] text-[color:var(--ink-3)]">
-                {{ song.author }} · {{ current?.id === song.id && p.songStartedAt ? `${clock(elapsed)} / ${clock(song.duration)}` : clock(song.duration) }}
-              </p>
-              <div v-if="current?.id === song.id" class="sp-progress">
-                <div class="sp-progress-fill" :style="{width: `${progress * 100}%`}"></div>
-              </div>
+              <p class="truncate text-[13px] text-[color:var(--ink-3)]">{{ song.author }} · {{ clock(song.duration) }}</p>
             </div>
-            <button v-if="current?.id === song.id" type="button" class="sp-play is-on" aria-label="Зупинити" :disabled="busy" @click="stopSong">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-            </button>
-            <button v-else type="button" class="sp-play" :aria-label="`Грати «${song.title}»`" :disabled="busy" @click="play(song.id)">
+            <span v-if="current?.id === song.id && music.state === 'playing'" class="sp-bars" aria-label="Грає"><i></i><i></i><i></i></span>
+            <button v-else type="button" class="sp-play" :class="{'is-on': current?.id === song.id}" :aria-label="`Грати «${song.title}»`" :disabled="busy" @click.stop="playSong(song)">
               <svg viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 h-4 w-4"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
             </button>
           </li>
         </ul>
-        <p v-if="current && !p.songStartedAt" class="sp-note">Готую колонку, мелодія почнеться за кілька секунд.</p>
-        <p v-else class="sp-note">
-          Мелодію грає сам Pi: аркуш можна закрити, {{ repeatMode === 'off' ? 'вона дограє до кінця' : 'вона гратиме по колу, доки не зупините' }}.
-          Повтор спільний з «Моєю музикою».
-        </p>
+        <p class="sp-note">Мелодії грає на органі сам Pi, у тому ж плеєрі, що й «Моя музика»: пауза, перемотка, повтор і перемішування спільні.</p>
       </Section>
 
       <Section name="Колонка">
