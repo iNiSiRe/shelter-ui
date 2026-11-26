@@ -2,7 +2,7 @@
   // Moes HY-368 radiator valve, reached through the Xiaomi gateway (shelter-xiaomi-module
   // radiatorValve.ts). The valve sleeps between polls, so a change shows up here as soon as it is
   // sent and is confirmed a few seconds later, when the valve echoes it.
-  import {computed} from "vue";
+  import {computed, ref} from "vue";
   import Device from "@/components/Device.vue";
   import Toggle from "@/components/controls/Toggle.vue";
   import List from "@/components/properties/List.vue";
@@ -20,8 +20,22 @@
 
   const state = computed(() => props.device.properties);
   const online = computed(() => state.value.available === true);
+  // Right after a backend restart the valve looks fresh but cannot be written to for up to a minute.
+  const controllable = computed(() => online.value && state.value.reachable !== false);
 
-  const call = (method, params = {}) => Registry.call(props.device.id, method, params);
+  const ERRORS = {
+    'The gateway has not been heard from yet, wait a minute': 'Шлюз ще не відповів — спробуйте за хвилину',
+    'The gateway is not connected': 'Немає зв\'язку зі шлюзом',
+    'The valve has not been heard from yet': 'Клапан ще не виходив на зв\'язок',
+  };
+
+  const error = ref('');
+
+  const call = async (method, params = {}) => {
+    const result = await Registry.call(props.device.id, method, params).catch(() => null);
+    error.value = result === null ? 'Пульт не відповідає'
+        : result.code !== 0 ? (ERRORS[result.data?.error] ?? result.data?.error ?? 'Не вдалося') : '';
+  };
 
   const PRESET_LABELS = {
     manual: 'вручну',
@@ -97,8 +111,11 @@
       <TemperatureHero
           :target="state.targetTemperature" :current="state.localTemperature" current-label="Біля клапана"
           :caption="caption"
-          :min="state.minTemperature ?? 5" :max="state.maxTemperature ?? 35" :step="0.5" :disabled="!online"
+          :min="state.minTemperature ?? 5" :max="state.maxTemperature ?? 35" :step="0.5"
+          :disabled="!controllable || state.targetTemperature === null || state.targetTemperature === undefined"
           @update:target="value => call('setTemperature', {value})"></TemperatureHero>
+
+      <p v-if="error" class="-mt-3 px-4 text-center text-[13px] text-[#ff453a]">{{ error }}</p>
 
       <Section>
         <List>
@@ -106,7 +123,7 @@
             <span class="field-label">Режим</span>
             <div class="mode-grid">
               <button v-for="option in PRESETS" :key="option.value" type="button"
-                  class="mode-btn" :class="{'is-sel': preset === option.value}" :disabled="!online"
+                  class="mode-btn" :class="{'is-sel': preset === option.value}" :disabled="!controllable"
                   @click="call('setPreset', {value: option.value})">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path :d="option.icon"/></svg>
                 <span class="mode-txt">{{ option.label }}</span>
@@ -156,7 +173,7 @@
           <li v-for="day in schedules" :key="day.label" class="field-row block">
             <span class="field-label">{{ day.label }}</span>
             <div class="mt-2 flex flex-wrap gap-1.5">
-              <span v-for="point in day.points" :key="point.time" class="pill" :class="{'pill-accent': point.current && preset === 'schedule'}">
+              <span v-for="(point, index) in day.points" :key="index" class="pill" :class="{'pill-accent': point.current && preset === 'schedule'}">
                 {{ point.time }} · {{ point.temperature }}°
               </span>
             </div>
@@ -175,8 +192,9 @@
             <span>{{ wifiSignal(state.rssi) }}</span>
           </Item>
           <Item label="Батарейки">
-            <span v-if="state.batteryLow" class="pill pill-fault"><span class="pill-dot"></span>Сідають</span>
-            <span v-else class="pill pill-ok"><span class="pill-dot"></span>Гаразд</span>
+            <span v-if="state.batteryLow === true" class="pill pill-fault"><span class="pill-dot"></span>Сідають</span>
+            <span v-else-if="state.batteryLow === false" class="pill pill-ok"><span class="pill-dot"></span>Гаразд</span>
+            <span v-else>—</span>
           </Item>
           <Item label="Оновлено">
             <div class="flex items-center gap-2">
