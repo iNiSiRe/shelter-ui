@@ -7,6 +7,7 @@ import Humidifier from "./components/xiaomi/humidifier.vue";
 import Magnet from "./components/xiaomi/magnet.vue";
 import Motion from "./components/xiaomi/motion.vue";
 import Leak from "./components/xiaomi/leak.vue";
+import RadiatorValve from "./components/xiaomi/valve.vue";
 import HVAC from "./components/cooper_hunter/hvac.vue";
 import Thermostat from "./components/terneo/thermostat.vue";
 import LGTV from "./components/lg/tv.vue";
@@ -32,6 +33,7 @@ app
     .component('lumi.sensor_motion.aq2', Motion)
     .component('lumi.sensor_wleak.aq1', Leak)
     .component('lumi.weather.v1', Weather)
+    .component('moes.hy368', RadiatorValve)
     .component('cooper_hunter.nordic_evo_2', HVAC)
     .component('terneo', Thermostat)
     .component('lgtv', LGTV)
