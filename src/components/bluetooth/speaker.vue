@@ -207,7 +207,7 @@
         item.progress = event.loaded / event.total;
       }
     };
-    // All of it is on the Pi: it reads the file and measures its loudness now.
+    // All of it is on the Pi: it reads the file now.
     xhr.upload.onload = () => {
       item.progress = 1;
       item.state = 'processing';
@@ -260,7 +260,7 @@
       case 'sending':
         return `Завантажую · ${Math.floor(item.progress * 100)}%`;
       case 'processing':
-        return 'Вирівнюю гучність…';
+        return 'Перевіряю файл…';
       case 'done':
         return 'Додано';
       default:
@@ -779,7 +779,6 @@
                  accept="audio/*,.mp3,.m4a,.aac,.flac,.ogg,.oga,.opus,.wav,.aif,.aiff" @change="onFiles">
           <p class="sp-note">
             {{ usage }} Найкраще MP3 або M4A; FLAC, OGG, Opus і WAV теж підійдуть, до {{ size(p.library?.fileLimit ?? 314572800) }} на файл.
-            Гучність треків Pi вирівнює сам.
           </p>
         </div>
       </Section>
